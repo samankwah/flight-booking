@@ -28,14 +28,32 @@
 
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2020",
     "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
     "jsx": "react-jsx",
+    "strict": true,
+
+    // IMPORTANT FIX:
+    // The main project must NOT be composite and MUST NOT emit,
+    // otherwise TypeScript fails when allowImportingTsExtensions is used.
     "noEmit": true,
-    "allowImportingTsExtensions": true
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "references": [
