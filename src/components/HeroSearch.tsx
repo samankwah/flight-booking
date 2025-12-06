@@ -214,7 +214,7 @@ const HeroSearch: React.FC = () => {
         <button
           key={day}
           onClick={() => !isDisabled && onSelectDate(dateString)}
-          disabled={isDisabled}
+          disabled={!!isDisabled}
           className={`h-10 rounded-lg font-medium transition ${
             isSelected
               ? "bg-cyan-600 text-white"

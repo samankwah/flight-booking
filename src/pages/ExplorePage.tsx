@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Heart, ChevronDown, Search } from "lucide-react";
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+import { Heart, ChevronDown } from "lucide-react";
+// import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+// import iconUrl from "leaflet/dist/images/marker-icon.png";
+// import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
+// L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
 
 interface Deal {
   id: string;

@@ -24,7 +24,7 @@ const LiveChat: React.FC = () => {
   ]);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [agentStatus, setAgentStatus] = useState("online");
+  const [agentStatus] = useState("online");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {

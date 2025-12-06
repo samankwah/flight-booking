@@ -435,13 +435,13 @@ const Footer: React.FC = () => {
     "Etihad",
   ];
 
-  const support = [
-    { label: "Help Center", href: "/help" },
-    { label: "FAQs", href: "/faq" },
-    { label: "How to Book", href: "/how-to-book" },
-    { label: "Contact Us", href: "/contact" },
-    { label: "Travel Alerts", href: "/alerts" },
-  ];
+  // const support = [
+  //   { label: "Help Center", href: "/help" },
+  //   { label: "FAQs", href: "/faq" },
+  //   { label: "How to Book", href: "/how-to-book" },
+  //   { label: "Contact Us", href: "/contact" },
+  //   { label: "Travel Alerts", href: "/alerts" },
+  // ];
 
   const company = [
     { label: "About Us", href: "/about" },
