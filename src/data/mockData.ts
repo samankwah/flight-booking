@@ -9,6 +9,7 @@ import type {
   PaymentMethod,
   NavigationLink,
   Airport,
+  FlightResult, // Import FlightResult
 } from "../types";
 
 export const airports: Airport[] = [
@@ -52,6 +53,89 @@ export const airlines: Airline[] = [
   { id: "5", name: "airblue", code: "PA" },
   { id: "6", name: "flydubai", code: "FZ" },
   { id: "7", name: "Air Arabia", code: "G9" },
+];
+
+export const flightResultsMock: FlightResult[] = [
+  {
+    id: "FL001",
+    airline: airlines[0], // Air Sial
+    flightNumber: "AS123",
+    departureAirport: airports[0], // DAC
+    arrivalAirport: airports[2], // JFK
+    departureTime: "08:00 AM",
+    arrivalTime: "02:00 PM",
+    duration: "18h 00m", // Example with layover
+    stops: 1,
+    price: 1200,
+    currency: "USD",
+    departureDate: "2025-01-15",
+    arrivalDate: "2025-01-15",
+    cabinClass: "economy",
+  },
+  {
+    id: "FL002",
+    airline: airlines[1], // PIA
+    flightNumber: "PK456",
+    departureAirport: airports[3], // LHR
+    arrivalAirport: airports[4], // DXB
+    departureTime: "10:30 AM",
+    arrivalTime: "07:30 PM",
+    duration: "7h 00m",
+    stops: 0,
+    price: 850,
+    currency: "USD",
+    departureDate: "2025-01-20",
+    arrivalDate: "2025-01-20",
+    cabinClass: "business",
+  },
+  {
+    id: "FL003",
+    airline: airlines[2], // SereneAir
+    flightNumber: "ER789",
+    departureAirport: airports[0], // DAC
+    arrivalAirport: airports[3], // LHR
+    departureTime: "05:00 PM",
+    arrivalTime: "11:00 PM",
+    duration: "13h 00m",
+    stops: 1,
+    price: 1100,
+    currency: "USD",
+    departureDate: "2025-01-22",
+    arrivalDate: "2025-01-22",
+    cabinClass: "economy",
+  },
+  {
+    id: "FL004",
+    airline: airlines[5], // flydubai
+    flightNumber: "FZ010",
+    departureAirport: airports[4], // DXB
+    arrivalAirport: airports[0], // DAC
+    departureTime: "01:00 AM",
+    arrivalTime: "09:00 AM",
+    duration: "4h 00m",
+    stops: 0,
+    price: 400,
+    currency: "USD",
+    departureDate: "2025-02-01",
+    arrivalDate: "2025-02-01",
+    cabinClass: "economy",
+  },
+  {
+    id: "FL005",
+    airline: airlines[6], // Air Arabia
+    flightNumber: "G9112",
+    departureAirport: airports[2], // JFK
+    arrivalAirport: airports[1], // CXB
+    departureTime: "09:00 PM",
+    arrivalTime: "07:00 AM",
+    duration: "20h 00m",
+    stops: 2,
+    price: 1500,
+    currency: "USD",
+    departureDate: "2025-02-05",
+    arrivalDate: "2025-02-06",
+    cabinClass: "firstClass",
+  },
 ];
 
 export const specialOffers: Destination[] = [

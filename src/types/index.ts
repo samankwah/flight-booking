@@ -83,3 +83,37 @@ export interface SocialLink {
   url: string;
   icon: string;
 }
+
+export interface Booking {
+  id: string;
+  userId: string;
+  flightId: string; // Reference to the FlightResult id
+  flightDetails: FlightResult; // Store a snapshot of flight details at time of booking
+  passengerInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  bookingDate: string; // ISO date string
+  status: "confirmed" | "pending" | "cancelled";
+  totalPrice: number;
+  currency: string;
+}
+
+export interface FlightResult {
+  id: string;
+  airline: Airline;
+  flightNumber: string;
+  departureAirport: Airport;
+  arrivalAirport: Airport;
+  departureTime: string; // e.g., "10:00 AM"
+  arrivalTime: string;   // e.g., "02:30 PM"
+  duration: string;      // e.g., "4h 30m"
+  stops: number;         // 0 for nonstop, 1 for one stop, etc.
+  price: number;
+  currency: string;
+  departureDate: string; // e.g., "2025-01-15"
+  arrivalDate: string;   // e.g., "2025-01-15"
+  cabinClass: "economy" | "business" | "firstClass";
+}

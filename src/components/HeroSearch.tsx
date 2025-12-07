@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { airports } from "../data/mockData";
 import type { Airport } from "../types";
 
@@ -35,6 +36,7 @@ interface SearchFormData {
 }
 
 const HeroSearch: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
     "flight" | "visa" | "hotel" | "package"
   >("flight");
@@ -150,8 +152,25 @@ const HeroSearch: React.FC = () => {
     formData.passengers.adults +
     formData.passengers.children +
     formData.passengers.infants;
-  const handleSearch = () =>
-    console.log("Search:", { ...formData, tripType, cabinClass, activeTab });
+  const handleSearch = () => {
+    if (activeTab === "flight") {
+      const { from, to, departureDate, returnDate, passengers } = formData;
+      const query = new URLSearchParams({
+        from: from?.code || "",
+        to: to?.code || "",
+        departureDate,
+        returnDate: tripType === "return" ? returnDate : "",
+        adults: passengers.adults.toString(),
+        children: passengers.children.toString(),
+        infants: passengers.infants.toString(),
+        tripType,
+        cabinClass,
+      }).toString();
+      navigate(`/flights?${query}`);
+    } else {
+      console.log("Search:", { ...formData, tripType, cabinClass, activeTab });
+    }
+  };
   const today = new Date().toISOString().split("T")[0];
 
   const formatDateDisplay = (dateString: string) => {
@@ -303,7 +322,7 @@ const HeroSearch: React.FC = () => {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
                   activeTab === tab.id
                     ? "bg-cyan-50 text-cyan-700"
@@ -569,7 +588,10 @@ const HeroSearch: React.FC = () => {
                               <div className="flex items-center gap-3">
                                 <button
                                   onClick={() =>
-                                    handlePassengerChange(type as any, -1)
+                                    handlePassengerChange(
+                                      type as "adults" | "children" | "infants",
+                                      -1
+                                    )
                                   }
                                   disabled={
                                     type === "adults"
@@ -591,7 +613,10 @@ const HeroSearch: React.FC = () => {
                                 </span>
                                 <button
                                   onClick={() =>
-                                    handlePassengerChange(type as any, 1)
+                                    handlePassengerChange(
+                                      type as "adults" | "children" | "infants",
+                                      1
+                                    )
                                   }
                                   className="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-cyan-500 font-semibold"
                                 >
@@ -651,7 +676,7 @@ const HeroSearch: React.FC = () => {
                         type="radio"
                         name="trip"
                         checked={tripType === t.value}
-                        onChange={() => setTripType(t.value as any)}
+                        onChange={() => setTripType(t.value as typeof tripType)}
                         className="w-4 h-4 text-cyan-600 focus:ring-cyan-500"
                       />
                       <span className="font-medium text-gray-700">
@@ -661,7 +686,11 @@ const HeroSearch: React.FC = () => {
                   ))}
                   <select
                     value={cabinClass}
-                    onChange={(e) => setCabinClass(e.target.value as any)}
+                    onChange={(e) =>
+                      setCabinClass(
+                        e.target.value as "economy" | "business" | "firstClass"
+                      )
+                    }
                     className="border border-gray-200 rounded-lg px-3 py-2 font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
                   >
                     <option value="economy">Economy</option>
@@ -880,7 +909,10 @@ const HeroSearch: React.FC = () => {
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() =>
-                                  handlePassengerChange(type as any, -1)
+                                  handlePassengerChange(
+                                    type as "adults" | "children" | "infants",
+                                    -1
+                                  )
                                 }
                                 disabled={
                                   type === "adults" &&
@@ -899,7 +931,10 @@ const HeroSearch: React.FC = () => {
                               </span>
                               <button
                                 onClick={() =>
-                                  handlePassengerChange(type as any, 1)
+                                  handlePassengerChange(
+                                    type as "adults" | "children" | "infants",
+                                    1
+                                  )
                                 }
                                 className="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-cyan-500 font-semibold"
                               >

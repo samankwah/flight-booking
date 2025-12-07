@@ -7,15 +7,34 @@ import FAQ from "./pages/support/FAQ";
 import LiveChat from "./pages/support/LiveChat";
 import SupportLayout from "./components/SupportLayout";
 import ExplorePage from "./pages/ExplorePage";
+import LoginPage from "./features/auth/pages/LoginPage";
+import RegisterPage from "./features/auth/pages/RegisterPage";
+import Footer from "./components/Footer";
+import FlightSearchPage from "./pages/FlightSearchPage";
+import BookingPage from "./pages/BookingPage"; // Import BookingPage
+import ConfirmationPage from "./pages/ConfirmationPage"; // Import ConfirmationPage
+import DashboardPage from "./pages/DashboardPage"; // Import DashboardPage
+import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
 
 const App: React.FC = () => {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
         <Header />
         <Routes>
-          {/* Home Route */}
-          <Route path="/" element={<HomePage />} />
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} /> {/* HomePage is now public */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/explore" element={<ExplorePage />} /> {/* ExplorePage is now public */}
+          <Route path="/confirmation" element={<ConfirmationPage />} /> {/* ConfirmationPage is public */}
+
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/flights" element={<FlightSearchPage />} />
+            <Route path="/booking" element={<BookingPage />} /> {/* BookingPage is protected */}
+            <Route path="/dashboard" element={<DashboardPage />} /> {/* Protected Dashboard */}
+          </Route>
 
           {/* Support Routes with Layout */}
           <Route
@@ -51,7 +70,6 @@ const App: React.FC = () => {
               </SupportLayout>
             }
           />
-          <Route path="/explore" element={<ExplorePage />} />
           <Route
             path="/support/chat"
             element={
@@ -61,7 +79,8 @@ const App: React.FC = () => {
             }
           />
         </Routes>
-      </div>
+        <Footer />
+      </main>
     </Router>
   );
 };

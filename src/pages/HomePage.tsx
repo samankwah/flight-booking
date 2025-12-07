@@ -5,7 +5,7 @@ import SpecialOffers from "../components/SpecialOffers";
 import TopDeals from "../components/TopDeals";
 import Statistics from "../components/Statistics";
 import Testimonials from "../components/Testimonials";
-import Footer from "../components/Footer";
+// import Footer from "../components/Footer";
 
 const HomePage: React.FC = () => {
   return (
@@ -16,7 +16,7 @@ const HomePage: React.FC = () => {
       <TopDeals />
       <Statistics />
       <Testimonials />
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 };
