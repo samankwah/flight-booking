@@ -7,14 +7,16 @@ import FAQ from "./pages/support/FAQ";
 import LiveChat from "./pages/support/LiveChat";
 import SupportLayout from "./components/SupportLayout";
 import ExplorePage from "./pages/ExplorePage";
-import LoginPage from "./features/auth/pages/LoginPage";
-import RegisterPage from "./features/auth/pages/RegisterPage";
+import LoginPage from "./features/auth/components/LoginPage";
+import RegisterPage from "./features/auth/components/RegisterPage";
 import Footer from "./components/Footer";
 import FlightSearchPage from "./pages/FlightSearchPage";
 import BookingPage from "./pages/BookingPage"; // Import BookingPage
 import ConfirmationPage from "./pages/ConfirmationPage"; // Import ConfirmationPage
 import DashboardPage from "./pages/DashboardPage"; // Import DashboardPage
 import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
+import SpecialOffers from "./components/SpecialOffers";
+import TopDeals from "./components/TopDeals";
 
 const App: React.FC = () => {
   return (
@@ -23,19 +25,24 @@ const App: React.FC = () => {
         <Header />
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<HomePage />} /> {/* HomePage is now public */}
+          <Route path="/" element={<HomePage />} />{" "}
+          {/* HomePage is now public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/explore" element={<ExplorePage />} /> {/* ExplorePage is now public */}
-          <Route path="/confirmation" element={<ConfirmationPage />} /> {/* ConfirmationPage is public */}
-
+          <Route path="/explore" element={<ExplorePage />} />{" "}
+          {/* ExplorePage is now public */}
+          <Route path="/confirmation" element={<ConfirmationPage />} />{" "}
+          {/* ConfirmationPage is public */}
+          <Route path="/flights" element={<FlightSearchPage />} />
+          <Route path="/offers" element={<SpecialOffers />} />
+          <Route path="/deals" element={<TopDeals />} />
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/flights" element={<FlightSearchPage />} />
-            <Route path="/booking" element={<BookingPage />} /> {/* BookingPage is protected */}
-            <Route path="/dashboard" element={<DashboardPage />} /> {/* Protected Dashboard */}
+            <Route path="/booking" element={<BookingPage />} />{" "}
+            {/* BookingPage is protected */}
+            <Route path="/dashboard" element={<DashboardPage />} />{" "}
+            {/* Protected Dashboard */}
           </Route>
-
           {/* Support Routes with Layout */}
           <Route
             path="/support"
@@ -52,7 +59,6 @@ const App: React.FC = () => {
               </SupportLayout>
             }
           />
-
           <Route
             path="/support/contact"
             element={
@@ -61,7 +67,6 @@ const App: React.FC = () => {
               </SupportLayout>
             }
           />
-
           <Route
             path="/support/faq"
             element={

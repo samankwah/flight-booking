@@ -309,8 +309,15 @@ const HeroSearch: React.FC = () => {
   ];
 
   return (
-    <section className="bg-gradient-to-r from-cyan-600 to-blue-600 pb-20 pt-20">
-      <div className="container mx-auto px-4">
+    <section
+      className="relative pb-20 pt-20 bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80')",
+      }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/10 to-blue-100/30"></div>
+      <div className="container mx-auto px-4 relative z-10">
         <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-6xl mx-auto">
           {/* Tabs */}
           <div className="flex flex-wrap gap-2 md:gap-4 mb-8 border-b px-8 pb-4">

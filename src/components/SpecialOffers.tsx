@@ -2,6 +2,7 @@
 import React from "react";
 import { specialOffers } from "../data/mockData";
 import { ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const SpecialOffers: React.FC = () => {
   return (
@@ -11,10 +12,13 @@ const SpecialOffers: React.FC = () => {
           <h2 className="text-2xl md:text-4xl font-bold text-gray-900">
             Special Offers
           </h2>
-          <button className="text-cyan-600 font-semibold hover:text-cyan-700 transition flex items-center gap-1 group">
+          <Link
+            to="/offers"
+            className="text-cyan-600 font-semibold hover:text-cyan-700 transition flex items-center gap-1 group"
+          >
             View all
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />
-          </button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { topDeals } from "../data/mockData";
 import { ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const TopDeals: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Bangkok");
@@ -15,10 +16,13 @@ const TopDeals: React.FC = () => {
           <h2 className="text-2xl md:text-4xl font-bold text-gray-900">
             Our Top deals for today
           </h2>
-          <button className="text-cyan-600 font-semibold text-sm hover:text-cyan-700 transition flex items-center gap-2 group">
+          <Link
+            to="/deals"
+            className="text-cyan-600 font-semibold text-sm hover:text-cyan-700 transition flex items-center gap-2 group"
+          >
             View all
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />
-          </button>
+          </Link>
         </div>
 
         {/* Tabs */}
