@@ -121,3 +121,251 @@ export interface FlightResult {
   returnDuration?: number;
   returnStops?: number;
 }
+
+// Hotel-related types
+export interface HotelSearchResult {
+  type: string;
+  subType: string;
+  name: string;
+  iataCode: string;
+  relevance?: number;
+  hotelIds?: string[];
+  address: {
+    cityName: string;
+    countryCode: string;
+  };
+  geoCode?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface HotelListResult {
+  chainCode: string;
+  iataCode: string;
+  dupeId: number;
+  name: string;
+  hotelId: string;
+  geoCode: {
+    latitude: number;
+    longitude: number;
+  };
+  address: {
+    countryCode: string;
+  };
+  lastUpdate: string;
+}
+
+export interface HotelOffer {
+  id: string;
+  checkInDate: string;
+  checkOutDate: string;
+  rateCode?: string;
+  rateFamilyEstimated?: {
+    code: string;
+    type: string;
+  };
+  commission?: {
+    percentage: string;
+  };
+  room: {
+    type: string;
+    typeEstimated?: {
+      category: string;
+    };
+    description: {
+      text: string;
+      lang: string;
+    };
+  };
+  guests: {
+    adults: number;
+  };
+  price: {
+    currency: string;
+    base: string;
+    total: string;
+    taxes?: Array<{
+      code: string;
+      pricingFrequency: string;
+      pricingMode: string;
+      amount: string;
+      currency: string;
+      included: boolean;
+    }>;
+    variations?: {
+      average: {
+        base: string;
+      };
+      changes: Array<{
+        startDate: string;
+        endDate: string;
+        base: string;
+      }>;
+    };
+  };
+  policies?: {
+    paymentType?: string;
+    cancellation?: {
+      amount: string;
+      type: string;
+      description?: string;
+    };
+  };
+}
+
+export interface HotelOffersResult {
+  type: string;
+  hotel: {
+    type: string;
+    hotelId: string;
+    chainCode: string;
+    dupeId: number;
+    name: string;
+    cityCode: string;
+    latitude: number;
+    longitude: number;
+  };
+  available: boolean;
+  offers: HotelOffer[];
+}
+
+export interface HotelSentimentResult {
+  type: string;
+  numberOfReviews: number;
+  numberOfRatings: number;
+  hotelId: string;
+  overallRating: number;
+  sentiments: {
+    sleepQuality?: number;
+    service?: number;
+    facilities?: number;
+    roomComforts?: number;
+    valueForMoney?: number;
+    catering?: number;
+    location?: number;
+    internet?: number;
+    pointsOfInterest?: number;
+    staff?: number;
+  };
+}
+
+export interface HotelSearchParams {
+  keyword?: string;
+  cityCode?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  radiusUnit?: "KM" | "MILE";
+  chainCodes?: string;
+  amenities?: string;
+  ratings?: string;
+  hotelSource?: "ALL" | "BEDBANK" | "DIRECTCHAIN";
+  checkInDate?: string;
+  checkOutDate?: string;
+  adults?: number;
+  roomQuantity?: number;
+  hotelIds?: string;
+  lang?: string;
+  max?: number;
+}
+
+// Holiday Package types
+export interface ActivityResult {
+  id: string;
+  type: string;
+  self: {
+    href: string;
+    methods: string[];
+  };
+  name: string;
+  shortDescription: string;
+  geoCode: {
+    latitude: string;
+    longitude: string;
+  };
+  rating: string;
+  pictures: string[];
+  bookingLink: string;
+  price: {
+    currencyCode: string;
+    amount: string;
+  };
+}
+
+export interface PointOfInterestResult {
+  type: string;
+  subType: string;
+  id: string;
+  self: {
+    href: string;
+    methods: string[];
+  };
+  geoCode: {
+    latitude: number;
+    longitude: number;
+  };
+  name: string;
+  category: string;
+  rank: number;
+  tags: string[];
+}
+
+export interface TravelRecommendationResult {
+  type: string;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate: string;
+  price: {
+    total: string;
+  };
+  links: {
+    flightDestinations: string;
+    flightOffers: string;
+  };
+}
+
+export interface HolidayPackage {
+  id: string;
+  destination: {
+    name: string;
+    country: string;
+    cityCode: string;
+  };
+  flights: {
+    outbound: FlightResult;
+    return: FlightResult;
+    totalPrice: number;
+    currency: string;
+  };
+  hotel: {
+    name: string;
+    rating: number;
+    pricePerNight: number;
+    totalPrice: number;
+    currency: string;
+    amenities: string[];
+  };
+  activities: ActivityResult[];
+  duration: number; // in days
+  totalPrice: number;
+  currency: string;
+  inclusions: string[];
+  highlights: string[];
+}
+
+export interface HolidayPackageSearchParams {
+  origin: string;
+  destination?: string;
+  departureDate: string;
+  returnDate: string;
+  adults: number;
+  children?: number;
+  infants?: number;
+  budget?: number;
+  duration?: number;
+  activities?: boolean;
+  hotelRating?: number;
+  packageType?: "budget" | "standard" | "luxury";
+}

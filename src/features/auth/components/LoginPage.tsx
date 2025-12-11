@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Mail, Lock } from "lucide-react";
+import { MdEmail as Mail, MdLock as Lock } from "react-icons/md";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";

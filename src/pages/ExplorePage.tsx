@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Heart, ChevronDown } from "lucide-react";
+import { MdFavorite as Heart, MdExpandMore as ChevronDown } from "react-icons/md";
 // import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 // import iconUrl from "leaflet/dist/images/marker-icon.png";
 // import shadowUrl from "leaflet/dist/images/marker-shadow.png";

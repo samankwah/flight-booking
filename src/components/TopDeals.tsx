@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { topDeals } from "../data/mockData";
-import { ChevronRight } from "lucide-react";
+import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
 
 const TopDeals: React.FC = () => {

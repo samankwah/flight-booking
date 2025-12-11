@@ -117,7 +117,7 @@ export default function FlightSearchPage() {
                   <button
                     key={tab.key}
                     onClick={() => setSortBy(tab.key as any)}
-                    className={`flex flex-col px-2 py-2 rounded-md transition-all font-medium text-sm ${
+                    className={`flex flex-col px-8 py-2 rounded-md transition-all font-medium text-sm ${
                       sortBy === tab.key
                         ? "bg-white text-blue-700 shadow-sm"
                         : "text-gray-600 hover:text-gray-900"

@@ -1,12 +1,12 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  ChevronRight,
-  Home,
-  MessageCircle,
-  HelpCircle,
-  Mail,
-} from "lucide-react";
+  MdChevronRight as ChevronRight,
+  MdHome as Home,
+  MdChat as MessageCircle,
+  MdHelp as HelpCircle,
+  MdEmail as Mail,
+} from "react-icons/md";
 
 interface SupportLayoutProps {
   children: React.ReactNode;

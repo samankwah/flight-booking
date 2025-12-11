@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, MessageCircle, User, Clock, Check } from "lucide-react";
+import { MdSend as Send, MdChat as MessageCircle, MdPerson as User, MdAccessTime as Clock, MdCheck as Check } from "react-icons/md";
 
 const LiveChat: React.FC = () => {
   const [messages, setMessages] = useState([

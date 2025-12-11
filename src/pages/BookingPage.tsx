@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, User, Plane, CreditCard } from "lucide-react";
+import { MdArrowBack as ArrowLeft, MdArrowForward as ArrowRight, MdPerson as User, MdFlight as Plane, MdCreditCard as CreditCard } from "react-icons/md";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";

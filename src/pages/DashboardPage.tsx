@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import type { Booking } from "../types";
-import { User, Mail, Edit, Save } from "lucide-react"; // Removed Plane, Calendar, Phone
+import { MdPerson as User, MdEmail as Mail, MdEdit as Edit, MdSave as Save } from "react-icons/md"; // Removed Plane, Calendar, Phone
 import { updateProfile } from "firebase/auth"; // Import updateProfile
 
 const DashboardPage: React.FC = () => {

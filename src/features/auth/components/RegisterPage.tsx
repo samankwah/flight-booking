@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, Mail, Lock } from "lucide-react";
+import { MdPerson as User, MdEmail as Mail, MdLock as Lock } from "react-icons/md";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";

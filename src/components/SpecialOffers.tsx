@@ -1,7 +1,7 @@
 // src/components/SpecialOffers.tsx
 import React from "react";
 import { specialOffers } from "../data/mockData";
-import { ChevronRight } from "lucide-react";
+import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
 
 const SpecialOffers: React.FC = () => {

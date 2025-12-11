@@ -11,6 +11,8 @@ import LoginPage from "./features/auth/components/LoginPage";
 import RegisterPage from "./features/auth/components/RegisterPage";
 import Footer from "./components/Footer";
 import FlightSearchPage from "./pages/FlightSearchPage";
+import HotelSearchPage from "./pages/HotelSearchPage";
+import HolidayPackagePage from "./pages/HolidayPackagePage";
 import BookingPage from "./pages/BookingPage"; // Import BookingPage
 import ConfirmationPage from "./pages/ConfirmationPage"; // Import ConfirmationPage
 import DashboardPage from "./pages/DashboardPage"; // Import DashboardPage
@@ -34,6 +36,8 @@ const App: React.FC = () => {
           <Route path="/confirmation" element={<ConfirmationPage />} />{" "}
           {/* ConfirmationPage is public */}
           <Route path="/flights" element={<FlightSearchPage />} />
+          <Route path="/hotels" element={<HotelSearchPage />} />
+          <Route path="/packages" element={<HolidayPackagePage />} />
           <Route path="/offers" element={<SpecialOffers />} />
           <Route path="/deals" element={<TopDeals />} />
           {/* Protected Routes */}

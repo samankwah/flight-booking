@@ -408,7 +408,7 @@
 // src/components/Footer.tsx
 
 import React from "react";
-import { Plane, Mail, Phone, MapPin } from "lucide-react";
+import { MdFlight as Plane, MdEmail as Mail, MdPhone as Phone, MdLocationOn as MapPin } from "react-icons/md";
 
 const Footer: React.FC = () => {
   const popularDestinations = [

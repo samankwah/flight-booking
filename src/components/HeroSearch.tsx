@@ -2,20 +2,21 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Search,
-  Plane,
-  MapPin,
-  Calendar,
-  Users,
-  ArrowLeftRight,
-  Hotel,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  MdSearch as Search,
+  MdFlight as Plane,
+  MdLocationOn as MapPin,
+  MdCalendarToday as Calendar,
+  MdPeople as Users,
+  MdSwapHoriz as ArrowLeftRight,
+  MdHotel as Hotel,
+  MdDescription as FileText,
+  MdChevronLeft as ChevronLeft,
+  MdChevronRight as ChevronRight,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { airports } from "../data/mockData";
 import type { Airport } from "../types";
+import { searchFlights, searchAirports, getNearbyAirports, AirportSearchResult, NearbyAirportResult, searchHotels, HotelSearchResult } from "../services/amadeusService";
 
 interface SearchFormData {
   from: Airport | null;
@@ -32,6 +33,9 @@ interface SearchFormData {
   checkOutDate: string;
   packageDestination: string;
   packageStartDate: string;
+  packageEndDate: string;
+  duration: number;
+  packageType: 'budget' | 'standard' | 'luxury';
   budgetRange: number;
 }
 
@@ -47,6 +51,12 @@ const HeroSearch: React.FC = () => {
     "economy" | "business" | "firstClass"
   >("economy");
 
+  // Set default dates for hotel check-in (tomorrow) and check-out (day after tomorrow)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfterTomorrow = new Date();
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
   const [formData, setFormData] = useState<SearchFormData>({
     from: airports[0],
     to: airports[1],
@@ -58,10 +68,13 @@ const HeroSearch: React.FC = () => {
     nationality: "",
     visaTravelDate: "",
     hotelDestination: "",
-    checkInDate: "",
-    checkOutDate: "",
+    checkInDate: tomorrow.toISOString().split('T')[0],
+    checkOutDate: dayAfterTomorrow.toISOString().split('T')[0],
     packageDestination: "",
-    packageStartDate: "",
+    packageStartDate: tomorrow.toISOString().split('T')[0],
+    packageEndDate: dayAfterTomorrow.toISOString().split('T')[0],
+    duration: 7,
+    packageType: 'standard' as 'budget' | 'standard' | 'luxury',
     budgetRange: 50000,
   });
 
@@ -71,6 +84,24 @@ const HeroSearch: React.FC = () => {
   const [searchFrom, setSearchFrom] = useState("");
   const [searchTo, setSearchTo] = useState("");
 
+  // Airport search state
+  const [fromAirports, setFromAirports] = useState<AirportSearchResult[]>([]);
+  const [toAirports, setToAirports] = useState<AirportSearchResult[]>([]);
+  const [fromLoading, setFromLoading] = useState(false);
+  const [toLoading, setToLoading] = useState(false);
+  const [fromSearchTimeout, setFromSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [toSearchTimeout, setToSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Nearby airports state
+  const [nearbyAirports, setNearbyAirports] = useState<NearbyAirportResult[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // Hotel search state
+  const [hotelSearchResults, setHotelSearchResults] = useState<HotelSearchResult[]>([]);
+  const [hotelLoading, setHotelLoading] = useState(false);
+  const [showHotelDropdown, setShowHotelDropdown] = useState(false);
+  const [hotelSearchTimeout, setHotelSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
   const [activeCalendar, setActiveCalendar] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -78,16 +109,95 @@ const HeroSearch: React.FC = () => {
   const toRef = useRef<HTMLDivElement>(null);
   const passengerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const hotelRef = useRef<HTMLDivElement>(null);
+  const checkInRef = useRef<HTMLDivElement>(null);
+  const checkOutRef = useRef<HTMLDivElement>(null);
+
+  // Get user's location and set default "From" airport
+  useEffect(() => {
+    const getUserLocation = async () => {
+      if (!navigator.geolocation) {
+        console.log("Geolocation not supported");
+        return;
+      }
+
+      setLocationLoading(true);
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000, // 5 minutes
+          });
+        });
+
+        const { latitude, longitude } = position.coords;
+        console.log("📍 User location:", { latitude, longitude });
+
+        const nearby = await getNearbyAirports(latitude, longitude, 100);
+        setNearbyAirports(nearby);
+
+        if (nearby.length > 0) {
+          const nearest = nearby[0];
+          console.log("🏠 Setting nearest airport as default:", nearest);
+
+          setFormData(prev => ({
+            ...prev,
+            from: {
+              code: nearest.iataCode,
+              name: nearest.name,
+              city: nearest.address.cityName,
+              country: nearest.address.countryCode,
+            },
+          }));
+        }
+      } catch (error) {
+        console.error("❌ Error getting user location:", error);
+        // If geolocation fails, set a default airport
+        setFormData(prev => ({
+          ...prev,
+          from: {
+            code: "JFK",
+            name: "John F Kennedy International",
+            city: "New York",
+            country: "US",
+          },
+        }));
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+
+    getUserLocation();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (fromRef.current && !fromRef.current.contains(event.target as Node))
+      const target = event.target as Element;
+
+      // Check if click is on calendar picker (don't close if clicking on calendar)
+      const isClickOnCalendar = target.closest('.calendar-picker') ||
+                               target.closest('[class*="CalendarPicker"]') ||
+                               target.closest('.grid.grid-cols-7');
+
+      if (fromRef.current && !fromRef.current.contains(target))
         setShowFromDropdown(false);
-      if (toRef.current && !toRef.current.contains(event.target as Node))
+      if (toRef.current && !toRef.current.contains(target))
         setShowToDropdown(false);
+      if (hotelRef.current && !hotelRef.current.contains(target))
+        setShowHotelDropdown(false);
+
+      // Only close calendar if not clicking on calendar itself
+      if (!isClickOnCalendar) {
+        if (checkInRef.current && !checkInRef.current.contains(target))
+          setActiveCalendar(null);
+        if (checkOutRef.current && !checkOutRef.current.contains(target))
+          setActiveCalendar(null);
+      }
+
       if (
         passengerRef.current &&
-        !passengerRef.current.contains(event.target as Node)
+        !passengerRef.current.contains(target)
       )
         setShowPassengerDropdown(false);
       if (
@@ -97,20 +207,125 @@ const HeroSearch: React.FC = () => {
         setActiveCalendar(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      // Cleanup timeouts
+      if (fromSearchTimeout) clearTimeout(fromSearchTimeout);
+      if (toSearchTimeout) clearTimeout(toSearchTimeout);
+    };
+  }, [fromSearchTimeout, toSearchTimeout]);
 
-  const filteredFromAirports = airports.filter((airport) =>
-    [airport.name, airport.city, airport.code].some((field) =>
-      field.toLowerCase().includes(searchFrom.toLowerCase())
-    )
-  );
+  // Debounced search functions for airports
+  const searchFromAirports = async (keyword: string) => {
+    if (keyword.length < 1) {
+      setFromAirports([]);
+      return;
+    }
 
-  const filteredToAirports = airports.filter((airport) =>
-    [airport.name, airport.city, airport.code].some((field) =>
-      field.toLowerCase().includes(searchTo.toLowerCase())
-    )
-  );
+    setFromLoading(true);
+    try {
+      const results = await searchAirports(keyword);
+      setFromAirports(results);
+    } catch (error) {
+      console.error("Error searching from airports:", error);
+      setFromAirports([]);
+    } finally {
+      setFromLoading(false);
+    }
+  };
+
+  const searchToAirports = async (keyword: string) => {
+    if (keyword.length < 1) {
+      setToAirports([]);
+      return;
+    }
+
+    setToLoading(true);
+    try {
+      const results = await searchAirports(keyword);
+      setToAirports(results);
+    } catch (error) {
+      console.error("Error searching to airports:", error);
+      setToAirports([]);
+    } finally {
+      setToLoading(false);
+    }
+  };
+
+  // Handle search input changes with debouncing
+  const handleFromSearchChange = (value: string) => {
+    setSearchFrom(value);
+
+    // Clear existing timeout
+    if (fromSearchTimeout) {
+      clearTimeout(fromSearchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      searchFromAirports(value);
+    }, 300);
+
+    setFromSearchTimeout(timeout);
+  };
+
+  const handleToSearchChange = (value: string) => {
+    setSearchTo(value);
+
+    // Clear existing timeout
+    if (toSearchTimeout) {
+      clearTimeout(toSearchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      searchToAirports(value);
+    }, 300);
+
+    setToSearchTimeout(timeout);
+  };
+
+  // Hotel search functions
+  const searchHotelsByKeyword = async (keyword: string) => {
+    setHotelLoading(true);
+    try {
+      // If keyword is empty or very short, search for "paris" to show some results
+      const searchTerm = keyword.length < 1 ? "paris" : keyword;
+      const results = await searchHotels(searchTerm);
+      setHotelSearchResults(results);
+    } catch (error) {
+      console.error("Error searching hotels:", error);
+      setHotelSearchResults([]);
+    } finally {
+      setHotelLoading(false);
+    }
+  };
+
+  const handleHotelSearchChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, hotelDestination: value }));
+
+    // Clear existing timeout
+    if (hotelSearchTimeout) {
+      clearTimeout(hotelSearchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      searchHotelsByKeyword(value);
+      setShowHotelDropdown(value.length > 0);
+    }, 200); // Reduced delay for better UX
+
+    setHotelSearchTimeout(timeout);
+  };
+
+  const handleSelectHotel = (hotel: HotelSearchResult) => {
+    setFormData((prev) => ({
+      ...prev,
+      hotelDestination: `${hotel.name} - ${hotel.address.cityName}, ${hotel.address.countryCode}`
+    }));
+    setShowHotelDropdown(false);
+    setHotelSearchResults([]);
+  };
 
   const handleSwapLocations = () =>
     setFormData((prev) => ({ ...prev, from: prev.to, to: prev.from }));
@@ -153,23 +368,66 @@ const HeroSearch: React.FC = () => {
     formData.passengers.children +
     formData.passengers.infants;
   const handleSearch = () => {
-    if (activeTab === "flight") {
-      const { from, to, departureDate, returnDate, passengers } = formData;
-      const query = new URLSearchParams({
-        from: from?.code || "",
-        to: to?.code || "",
-        departureDate,
-        returnDate: tripType === "return" ? returnDate : "",
-        adults: passengers.adults.toString(),
-        children: passengers.children.toString(),
-        infants: passengers.infants.toString(),
-        tripType,
-        cabinClass,
-      }).toString();
-      navigate(`/flights?${query}`);
-    } else {
-      console.log("Search:", { ...formData, tripType, cabinClass, activeTab });
+    if (activeTab === 'flight') {
+      // Build flight search parameters
+      const params = new URLSearchParams();
+
+      if (formData.from?.code) params.append('from', formData.from.code);
+      if (formData.to?.code) params.append('to', formData.to.code);
+      if (formData.departureDate) params.append('departureDate', formData.departureDate);
+      if (formData.returnDate) params.append('returnDate', formData.returnDate);
+      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
+      if (formData.passengers.children) params.append('children', formData.passengers.children.toString());
+      if (formData.passengers.infants) params.append('infants', formData.passengers.infants.toString());
+
+      // Add travel class
+      const travelClass = cabinClass === 'economy' ? 'ECONOMY' :
+                         cabinClass === 'business' ? 'BUSINESS' :
+                         cabinClass === 'firstClass' ? 'FIRST' : 'ECONOMY';
+      params.append('travelClass', travelClass);
+
+      // Navigate to flights page with search parameters
+      navigate(`/flights?${params.toString()}`);
+    } else if (activeTab === 'hotel') {
+      // Build hotel search parameters
+      const params = new URLSearchParams();
+
+      if (formData.hotelDestination) params.append('destination', formData.hotelDestination);
+      if (formData.checkInDate) params.append('checkInDate', formData.checkInDate);
+      if (formData.checkOutDate) params.append('checkOutDate', formData.checkOutDate);
+      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
+      if (formData.rooms) params.append('rooms', formData.rooms.toString());
+
+      // Navigate to hotels page with search parameters
+      navigate(`/hotels?${params.toString()}`);
+    } else if (activeTab === 'package') {
+      // Build holiday package search parameters
+      const params = new URLSearchParams();
+
+      if (formData.packageDestination) params.append('destination', formData.packageDestination.trim());
+      if (formData.packageStartDate) params.append('departureDate', formData.packageStartDate);
+      if (formData.duration) params.append('duration', formData.duration.toString());
+      if (formData.packageType) params.append('packageType', formData.packageType);
+      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
+      if (formData.passengers.children) params.append('children', formData.passengers.children.toString());
+      if (formData.budgetRange) params.append('budget', formData.budgetRange.toString());
+
+      // Calculate return date based on duration if not already set
+      if (!formData.packageEndDate) {
+        const returnDate = new Date(formData.packageStartDate);
+        returnDate.setDate(returnDate.getDate() + formData.duration);
+        params.append('returnDate', returnDate.toISOString().split('T')[0]);
+      }
+
+      // Calculate return date based on duration
+      const returnDate = new Date(formData.packageStartDate);
+      returnDate.setDate(returnDate.getDate() + formData.duration);
+      params.append('returnDate', returnDate.toISOString().split('T')[0]);
+
+      // Navigate to packages page with search parameters
+      navigate(`/packages?${params.toString()}`);
     }
+    // Add other tab handlers as needed
   };
   const today = new Date().toISOString().split("T")[0];
 
@@ -250,7 +508,7 @@ const HeroSearch: React.FC = () => {
     }
 
     return (
-      <div className="p-4 bg-white rounded-lg shadow-2xl border border-gray-200 w-80">
+      <div className="calendar-picker p-4 bg-white rounded-lg shadow-2xl border border-gray-200 w-80">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() =>
@@ -318,9 +576,9 @@ const HeroSearch: React.FC = () => {
     >
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/10 to-blue-100/30"></div>
       <div className="container mx-auto px-4 relative z-10">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-6xl mx-auto">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2 md:gap-4 mb-8 border-b px-8 pb-4">
+          <div className="flex flex-wrap gap-1 sm:gap-2 lg:gap-4 mb-6 sm:mb-8 border-b px-2 sm:px-4 lg:px-8 pb-3 sm:pb-4">
             {[
               { id: "flight", icon: Plane, label: "Book a flight" },
               { id: "visa", icon: FileText, label: "Visa" },
@@ -345,11 +603,11 @@ const HeroSearch: React.FC = () => {
           {/* FLIGHT TAB */}
           {activeTab === "flight" && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 relative">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 relative">
                 {/* From */}
                 <div className="relative" ref={fromRef}>
                   <div
-                    className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
+                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
                     onClick={() => {
                       setShowFromDropdown(!showFromDropdown);
                       setShowToDropdown(false);
@@ -357,15 +615,19 @@ const HeroSearch: React.FC = () => {
                       setActiveCalendar(null);
                     }}
                   >
-                    <label className="text-sm text-gray-600 block mb-2 font-medium">
+                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                       From
+                      {locationLoading && (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-cyan-500"></div>
+                      )}
                     </label>
-                    <div className="font-semibold text-lg">
-                      {formData.from?.city || "Select City"}
+                    <div className="font-semibold text-base sm:text-lg">
+                      {locationLoading ? "Detecting location..." : (formData.from?.city || "Select City")}
                     </div>
-                    <div className="text-sm text-gray-500 truncate">
-                      {formData.from?.code},{" "}
-                      {formData.from?.name.substring(0, 25)}...
+                    <div className="text-xs sm:text-sm text-gray-500 truncate">
+                      {locationLoading ? "Finding nearest airport..." : (
+                        formData.from?.code ? `${formData.from.code}, ${formData.from.name.substring(0, 25)}...` : ""
+                      )}
                     </div>
                   </div>
                   {showFromDropdown && (
@@ -373,28 +635,48 @@ const HeroSearch: React.FC = () => {
                       <div className="p-3 border-b">
                         <input
                           type="text"
-                          placeholder="Search..."
+                          placeholder="Search airports and cities..."
                           value={searchFrom}
-                          onChange={(e) => setSearchFrom(e.target.value)}
+                          onChange={(e) => handleFromSearchChange(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                           autoFocus
                         />
                       </div>
                       <div className="overflow-y-auto max-h-80">
-                        {filteredFromAirports.map((airport) => (
-                          <div
-                            key={airport.code}
-                            onClick={() => handleSelectFrom(airport)}
-                            className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
-                          >
-                            <div className="font-semibold text-gray-900">
-                              {airport.city}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {airport.code} - {airport.name}
-                            </div>
+                        {fromLoading ? (
+                          <div className="p-3 text-center text-gray-500">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
+                            Searching...
                           </div>
-                        ))}
+                        ) : searchFrom.length === 0 ? (
+                          <div className="p-3 text-center text-gray-500">
+                            Start typing to search airports and cities...
+                          </div>
+                        ) : fromAirports.length === 0 ? (
+                          <div className="p-3 text-center text-gray-500">
+                            No airports found
+                          </div>
+                        ) : (
+                          fromAirports.map((airport) => (
+                            <div
+                              key={`${airport.iataCode}-${airport.subType}`}
+                              onClick={() => handleSelectFrom({
+                                code: airport.iataCode,
+                                name: airport.name,
+                                city: airport.address.cityName,
+                                country: airport.address.countryCode
+                              })}
+                              className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
+                            >
+                              <div className="font-semibold text-gray-900">
+                                {airport.name}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {airport.iataCode} - {airport.address.cityName}, {airport.address.countryCode}
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   )}
@@ -403,7 +685,7 @@ const HeroSearch: React.FC = () => {
                 {/* To */}
                 <div className="relative" ref={toRef}>
                   <div
-                    className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer relative border-2 border-transparent hover:border-cyan-200"
+                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer relative border-2 border-transparent hover:border-cyan-200"
                     onClick={() => {
                       setShowToDropdown(!showToDropdown);
                       setShowFromDropdown(false);
@@ -411,15 +693,14 @@ const HeroSearch: React.FC = () => {
                       setActiveCalendar(null);
                     }}
                   >
-                    <label className="text-sm text-gray-600 block mb-2 font-medium">
+                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium">
                       To
                     </label>
-                    <div className="font-semibold text-lg">
+                    <div className="font-semibold text-base sm:text-lg">
                       {formData.to?.city || "Select City"}
                     </div>
-                    <div className="text-sm text-gray-500 truncate">
-                      {formData.to?.code}, {formData.to?.name.substring(0, 25)}
-                      ...
+                    <div className="text-xs sm:text-sm text-gray-500 truncate">
+                      {formData.to?.code ? `${formData.to.code}, ${formData.to.name.substring(0, 25)}...` : ""}
                     </div>
                   </div>
                   <button
@@ -437,28 +718,48 @@ const HeroSearch: React.FC = () => {
                       <div className="p-3 border-b">
                         <input
                           type="text"
-                          placeholder="Search..."
+                          placeholder="Search airports and cities..."
                           value={searchTo}
-                          onChange={(e) => setSearchTo(e.target.value)}
+                          onChange={(e) => handleToSearchChange(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                           autoFocus
                         />
                       </div>
                       <div className="overflow-y-auto max-h-80">
-                        {filteredToAirports.map((airport) => (
-                          <div
-                            key={airport.code}
-                            onClick={() => handleSelectTo(airport)}
-                            className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
-                          >
-                            <div className="font-semibold text-gray-900">
-                              {airport.city}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {airport.code} - {airport.name}
-                            </div>
+                        {toLoading ? (
+                          <div className="p-3 text-center text-gray-500">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
+                            Searching...
                           </div>
-                        ))}
+                        ) : searchTo.length === 0 ? (
+                          <div className="p-3 text-center text-gray-500">
+                            Start typing to search airports and cities...
+                          </div>
+                        ) : toAirports.length === 0 ? (
+                          <div className="p-3 text-center text-gray-500">
+                            No airports found
+                          </div>
+                        ) : (
+                          toAirports.map((airport) => (
+                            <div
+                              key={`${airport.iataCode}-${airport.subType}`}
+                              onClick={() => handleSelectTo({
+                                code: airport.iataCode,
+                                name: airport.name,
+                                city: airport.address.cityName,
+                                country: airport.address.countryCode
+                              })}
+                              className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
+                            >
+                              <div className="font-semibold text-gray-900">
+                                {airport.name}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {airport.iataCode} - {airport.address.cityName}, {airport.address.countryCode}
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   )}
@@ -467,7 +768,7 @@ const HeroSearch: React.FC = () => {
                 {/* Departure Date */}
                 <div className="relative" ref={calendarRef}>
                   <div
-                    className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
+                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
                     onClick={() => {
                       setActiveCalendar("departure");
                       setShowFromDropdown(false);
@@ -475,14 +776,14 @@ const HeroSearch: React.FC = () => {
                       setShowPassengerDropdown(false);
                     }}
                   >
-                    <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
+                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
                       Departure Date
                     </label>
-                    <div className="font-semibold text-lg">
+                    <div className="font-semibold text-base sm:text-lg">
                       {formatDateDisplay(formData.departureDate).date}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500">
                       {formatDateDisplay(formData.departureDate).day}
                     </div>
                   </div>
@@ -503,7 +804,7 @@ const HeroSearch: React.FC = () => {
                 {tripType === "return" ? (
                   <div className="relative" ref={calendarRef}>
                     <div
-                      className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
+                      className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
                       onClick={() => {
                         setActiveCalendar("return");
                         setShowFromDropdown(false);
@@ -549,10 +850,10 @@ const HeroSearch: React.FC = () => {
                         <Users className="w-4 h-4" />
                         Room & Traveler
                       </label>
-                      <div className="font-semibold text-lg">
-                        {formData.rooms} Room, {getTotalPassengers()} Traveler
+                      <div className="font-semibold text-base sm:text-lg">
+                        {formData.rooms} Room, {getTotalPassengers()} Traveler{getTotalPassengers() !== 1 ? 's' : ''}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs sm:text-sm text-gray-500">
                         {formData.passengers.adults} Adult
                         {formData.passengers.children > 0 &&
                           `, ${formData.passengers.children} Child`}
@@ -806,8 +1107,8 @@ const HeroSearch: React.FC = () => {
           {/* HOTEL TAB */}
           {activeTab === "hotel" && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="relative bg-gray-50 p-4 rounded-lg" ref={hotelRef}>
                   <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Destination
@@ -815,17 +1116,48 @@ const HeroSearch: React.FC = () => {
                   <input
                     type="text"
                     value={formData.hotelDestination}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        hotelDestination: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => handleHotelSearchChange(e.target.value)}
+                    onFocus={() => formData.hotelDestination && setShowHotelDropdown(true)}
                     placeholder="City or hotel name"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
+                  {showHotelDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-80 overflow-y-auto" style={{ zIndex: 9999 }}>
+                      {hotelLoading ? (
+                        <div className="p-3 text-center text-gray-500">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
+                          Searching hotels...
+                        </div>
+                      ) : hotelSearchResults.length === 0 ? (
+                        <div className="p-3 text-center text-gray-500">
+                          {formData.hotelDestination.length === 0 ? "Start typing to search hotels and cities..." : `No hotels found for "${formData.hotelDestination}"`}
+                        </div>
+                      ) : (
+                        hotelSearchResults.map((hotel, index) => (
+                          <div
+                            key={`${hotel.hotelIds?.[0] || hotel.name}-${index}`}
+                            onClick={() => handleSelectHotel(hotel)}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-semibold text-gray-900">
+                              {hotel.name}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {hotel.address.cityName}, {hotel.address.countryCode}
+                              {hotel.iataCode && ` (${hotel.iataCode})`}
+                            </div>
+                            {hotel.relevance && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Relevance: {hotel.relevance}%
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="relative" ref={calendarRef}>
+                <div className="relative" ref={checkInRef}>
                   <div
                     className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition"
                     onClick={() => setActiveCalendar("checkIn")}
@@ -853,7 +1185,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <div className="relative" ref={calendarRef}>
+                <div className="relative" ref={checkOutRef}>
                   <div
                     className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition"
                     onClick={() => setActiveCalendar("checkOut")}
@@ -997,8 +1329,8 @@ const HeroSearch: React.FC = () => {
           {/* PACKAGE TAB */}
           {activeTab === "package" && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg relative">
                   <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Destination
@@ -1012,10 +1344,37 @@ const HeroSearch: React.FC = () => {
                         packageDestination: e.target.value,
                       }))
                     }
-                    placeholder="Enter destination"
+                    placeholder="e.g., Paris, Barcelona, Dubai"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
+                  {/* Popular Destinations Suggestions */}
+                  {/* <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                    <div className="p-2">
+                      <div className="text-xs text-gray-500 mb-2 font-medium">Popular Destinations</div>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[
+                          'Paris, France',
+                          'Barcelona, Spain',
+                          'Dubai, UAE',
+                          'London, UK',
+                          'New York, USA',
+                          'Tokyo, Japan',
+                          'Cape Town, South Africa',
+                          'Accra, Ghana'
+                        ].map((dest) => (
+                          <button
+                            key={dest}
+                            onClick={() => setFormData((prev) => ({ ...prev, packageDestination: dest }))}
+                            className="text-left text-sm p-2 hover:bg-gray-50 rounded text-gray-700 hover:text-cyan-600"
+                          >
+                            {dest}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div> */}
                 </div>
+
                 <div className="relative" ref={calendarRef}>
                   <div
                     className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition"
@@ -1023,7 +1382,7 @@ const HeroSearch: React.FC = () => {
                   >
                     <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Start Date
+                      Departure
                     </label>
                     <div className="font-semibold text-lg">
                       {formatDateDisplay(formData.packageStartDate).date}
@@ -1044,15 +1403,58 @@ const HeroSearch: React.FC = () => {
                     </div>
                   )}
                 </div>
+
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <label className="text-sm text-gray-600 block mb-2 font-medium">
-                    Budget Range
+                    Duration
+                  </label>
+                  <select
+                    value={formData.duration}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        duration: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value={3}>3 Nights</option>
+                    <option value={5}>5 Nights</option>
+                    <option value={7}>7 Nights</option>
+                    <option value={10}>10 Nights</option>
+                    <option value={14}>14 Nights</option>
+                  </select>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="text-sm text-gray-600 block mb-2 font-medium">
+                    Package Type
+                  </label>
+                  <select
+                    value={formData.packageType}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        packageType: e.target.value as 'budget' | 'standard' | 'luxury',
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="budget">Budget</option>
+                    <option value="standard">Standard</option>
+                    <option value="luxury">Luxury</option>
+                  </select>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="text-sm text-gray-600 block mb-2 font-medium">
+                    Max Budget
                   </label>
                   <input
                     type="range"
                     min="10000"
                     max="500000"
-                    step="10000"
+                    step="5000"
                     value={formData.budgetRange}
                     onChange={(e) =>
                       setFormData((prev) => ({

@@ -1,7 +1,7 @@
 // src/components/Testimonials.tsx
 
 import React from "react";
-import { Star, CheckCircle2 } from "lucide-react";
+import { MdStar as Star, MdCheckCircle as CheckCircle2 } from "react-icons/md";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";

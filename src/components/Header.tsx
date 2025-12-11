@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Menu,
-  Plane,
-  X,
-  ChevronDown,
-  UserPlus,
-  UserMinus, // Changed from LogOut to UserMinus
-  Globe,
-} from "lucide-react";
+  MdMenu as Menu,
+  MdFlight as Plane,
+  MdClose as X,
+  MdExpandMore as ChevronDown,
+  MdPersonAdd as UserPlus,
+  MdPersonRemove as UserMinus, // Changed from LogOut to UserMinus
+  MdLanguage as Globe,
+} from "react-icons/md";
 import { Menu as HeadlessMenu, Transition } from "@headlessui/react";
 import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import { useAuth } from "../contexts/AuthContext"; // Import useAuth

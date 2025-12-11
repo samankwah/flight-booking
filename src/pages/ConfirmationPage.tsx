@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { MdCheckCircle as CheckCircle } from "react-icons/md";
 
 const ConfirmationPage: React.FC = () => {
   return (

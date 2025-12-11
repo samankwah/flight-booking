@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { MdExpandMore as ChevronDown, MdExpandLess as ChevronUp, MdSearch as Search } from "react-icons/md";
 
 const FAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
