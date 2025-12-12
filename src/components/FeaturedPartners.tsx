@@ -1,26 +1,94 @@
-// src/components/FeaturedPartners.tsx
 import React from "react";
-import { airlines } from "../data/mockData";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay } from "swiper/modules"; // Only Autoplay now
-
-// Import Swiper styles
+import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
+const featuredAirlines = [
+  // Global majors
+  { iataCode: "AA", name: "American Airlines" },
+  { iataCode: "DL", name: "Delta Air Lines" },
+  { iataCode: "UA", name: "United Airlines" },
+  { iataCode: "BA", name: "British Airways" },
+  { iataCode: "LH", name: "Lufthansa" },
+  { iataCode: "AF", name: "Air France" },
+  { iataCode: "KL", name: "KLM" },
+  { iataCode: "EK", name: "Emirates" },
+  { iataCode: "QR", name: "Qatar Airways" },
+  { iataCode: "TK", name: "Turkish Airlines" },
+  { iataCode: "SQ", name: "Singapore Airlines" },
+  { iataCode: "EY", name: "Etihad Airways" },
+
+  // Africa & Domestic Partners (New Additions)
+  { iataCode: "AW", name: "Africa World Airlines" },
+  { iataCode: "OP", name: "Passion Air" },
+  { iataCode: "KP", name: "ASKY Airlines" },
+  { iataCode: "ET", name: "Ethiopian Airlines" },
+  { iataCode: "WB", name: "RwandAir" },
+  { iataCode: "KQ", name: "Kenya Airways" },
+  { iataCode: "W3", name: "Arik Air" },
+  { iataCode: "P4", name: "Air Peace" },
+];
+
 const FeaturedPartners: React.FC = () => {
+  const getAirlineLogoUrl = (iataCode: string): string => {
+    return `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iataCode}.svg`;
+  };
+
+  const getPlaceholderSvg = (iataCode: string, airlineName: string): string => {
+    const colors = [
+      "#3B82F6",
+      "#10B981",
+      "#F59E0B",
+      "#EF4444",
+      "#8B5CF6",
+      "#EC4899",
+      "#06B6D4",
+      "#84CC16",
+    ];
+    const color = colors[iataCode.charCodeAt(0) % colors.length];
+
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 80'%3E%3Crect width='200' height='80' fill='${encodeURIComponent(
+      color
+    )}' rx='8'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='32' fill='white' font-weight='bold' font-family='system-ui, -apple-system, sans-serif'%3E${iataCode}%3C/text%3E%3C/svg%3E`;
+  };
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement>,
+    iataCode: string,
+    airlineName: string
+  ) => {
+    const img = e.currentTarget;
+
+    const fallbacks = [
+      `https://images.kiwi.com/airlines/64/${iataCode}.png`,
+      `https://pics.avs.io/200/100/${iataCode}.png`,
+      `https://content.airhex.com/content/logos/airlines_${iataCode}_200_200_s.png`,
+      getPlaceholderSvg(iataCode, airlineName),
+    ];
+
+    const currentSrc = img.src;
+    const currentIndex = fallbacks.findIndex((url) =>
+      currentSrc.includes(url.split("?")[0])
+    );
+
+    if (currentIndex < fallbacks.length - 1) {
+      img.src = fallbacks[currentIndex + 1];
+    }
+  };
+
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-white dark:bg-gray-900">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl md:text-4xl font-bold text-center mb-3 text-gray-900">
+        <h2 className="text-2xl md:text-4xl font-bold text-center mb-3 text-gray-900 dark:text-white">
           Featured Partners
         </h2>
-        <p className="text-gray-600 text-center font-semibold mb-12 text-lg">
+        <p className="text-gray-600 dark:text-gray-400 text-center font-semibold mb-12 text-lg">
           Domestic & International Flight Partner for you
         </p>
 
         <Swiper
           modules={[Autoplay]}
-          spaceBetween={30}
+          spaceBetween={10}
           slidesPerView={3}
           loop={true}
           autoplay={{ delay: 2500, disableOnInteraction: false }}
@@ -29,15 +97,22 @@ const FeaturedPartners: React.FC = () => {
             768: { slidesPerView: 4 },
             1024: { slidesPerView: 6 },
           }}
-          className="py-4"
+          className="py-0"
         >
-          {airlines.map((airline) => (
-            <SwiperSlide key={airline.id} className="flex justify-center">
-              <img
-                src={airline.logo} // Make sure mockData has a 'logo' field
-                alt={airline.name}
-                className="h-16 md:h-24 object-contain transition-transform duration-300 hover:scale-105 cursor-pointer"
-              />
+          {featuredAirlines.map((airline) => (
+            <SwiperSlide key={airline.iataCode} className="flex justify-center">
+              <div className="flex items-center justify-center h-24 w-full px-4">
+                <img
+                  src={getAirlineLogoUrl(airline.iataCode)}
+                  alt={airline.name}
+                  className="h-14 md:h-16 max-w-full object-contain transition-transform duration-300 hover:scale-105 cursor-pointer"
+                  onError={(e) =>
+                    handleImageError(e, airline.iataCode, airline.name)
+                  }
+                  loading="lazy"
+                  title={airline.name}
+                />
+              </div>
             </SwiperSlide>
           ))}
         </Swiper>

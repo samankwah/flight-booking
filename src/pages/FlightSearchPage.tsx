@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchFlights } from "../services/amadeusService";
 import FlightResults from "../components/FlightResults";
 import Sidebar from "../components/Sidebar";
+import MobileSidebar from "../components/MobileSidebar";
 import LoadingWrapper from "../components/LoadingWrapper";
 import { FlightResult } from "../types";
 
@@ -14,6 +15,7 @@ export default function FlightSearchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"best" | "cheapest" | "fastest">("best");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -31,8 +33,8 @@ export default function FlightSearchPage() {
           cabinClass: searchParams.get("travelClass") || "ECONOMY",
         });
         setFlights(results);
-      } catch (err: any) {
-        setError(err.message || "Failed to load flights");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load flights");
       } finally {
         setLoading(false);
       }
@@ -116,7 +118,9 @@ export default function FlightSearchPage() {
                 ].map((tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => setSortBy(tab.key as any)}
+                    onClick={() =>
+                      setSortBy(tab.key as "best" | "cheapest" | "fastest")
+                    }
                     className={`flex flex-col px-2 py-2 rounded-md transition-all font-medium text-sm ${
                       sortBy === tab.key
                         ? "bg-white text-blue-700 shadow-sm"
@@ -147,13 +151,34 @@ export default function FlightSearchPage() {
                 ))}
               </div>
 
-              {/* Modify Search - same line, right-aligned */}
-              <button
-                onClick={() => navigate("/")}
-                className="text-blue-600 hover:underline text-sm font-medium whitespace-nowrap"
-              >
-                Modify search
-              </button>
+              {/* Mobile Filter Button + Modify Search - same line, right-aligned */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="lg:hidden flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                    />
+                  </svg>
+                  Filters
+                </button>
+                <button
+                  onClick={() => navigate("/")}
+                  className="text-blue-600 hover:underline text-sm font-medium whitespace-nowrap"
+                >
+                  Modify search
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -173,6 +198,12 @@ export default function FlightSearchPage() {
           </main>
         </div>
       </div>
+
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+      />
     </div>
   );
 }

@@ -109,6 +109,8 @@ export interface FlightResult {
   id: string;
   airline: string;
   airlineCode?: string; // IATA airline code (e.g., "AA", "BA", "BG")
+  departureAirport: string; // IATA airport code (e.g., "LHR", "JFK", "LOS")
+  arrivalAirport: string; // IATA airport code (e.g., "LHR", "JFK", "ACC")
   departureTime: string;
   arrivalTime: string;
   duration: number; // in minutes

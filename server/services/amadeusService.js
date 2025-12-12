@@ -16,8 +16,9 @@ class AmadeusService {
 
       return response.data;
     } catch (error) {
+      console.error('Amadeus API Error details:', error);
       throw new Error(
-        `Amadeus API Error: ${error.description || error.message}`
+        `Amadeus API Error: ${error.description || error.message || JSON.stringify(error)}`
       );
     }
   }

@@ -5,14 +5,13 @@ import {
   MdClose as X,
   MdExpandMore as ChevronDown,
   MdPersonAdd as UserPlus,
-  MdPersonRemove as UserMinus, // Changed from LogOut to UserMinus
-  MdLanguage as Globe,
+  MdPersonRemove as UserMinus,
 } from "react-icons/md";
 import { Menu as HeadlessMenu, Transition } from "@headlessui/react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
-import { useAuth } from "../contexts/AuthContext"; // Import useAuth
-import { signOut } from "firebase/auth"; // Import signOut
-import { auth } from "../firebase"; // Import auth directly from firebase.ts
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 interface Country {
   code: string;
@@ -68,7 +67,7 @@ const Header: React.FC = () => {
     language: false,
   });
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const { currentUser, loading } = useAuth(); // Use the authentication hook
+  const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,16 +98,15 @@ const Header: React.FC = () => {
   const handleAuthAction = async () => {
     if (currentUser) {
       try {
-        await signOut(auth); // Use imported auth
-        navigate("/login"); // Redirect to login page after sign out
-        setMobileMenuOpen(false); // Close mobile menu if open
+        await signOut(auth);
+        navigate("/login");
+        setMobileMenuOpen(false);
       } catch (error) {
         console.error("Error signing out:", error);
-        // Optionally, display an error message to the user
       }
     } else {
-      navigate("/login"); // Navigate to login page
-      setMobileMenuOpen(false); // Close mobile menu if open
+      navigate("/login");
+      setMobileMenuOpen(false);
     }
   };
 
@@ -156,6 +154,7 @@ const Header: React.FC = () => {
                   Customer Support
                   <ChevronDown className="w-4 h-4 mt-0.5" />
                 </HeadlessMenu.Button>
+
                 <Transition
                   enter="transition ease-out duration-150"
                   enterFrom="opacity-0 scale-95"
@@ -190,7 +189,7 @@ const Header: React.FC = () => {
                 Explore
               </Link>
 
-              {/* Language Selector */}
+              {/* KEEP ONLY THIS LANGUAGE SELECTOR */}
               <HeadlessMenu as="div" className="relative">
                 <HeadlessMenu.Button className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-cyan-600 transition font-medium">
                   <img
@@ -203,6 +202,7 @@ const Header: React.FC = () => {
                   </span>
                   <ChevronDown className="w-4 h-4" />
                 </HeadlessMenu.Button>
+
                 <Transition
                   enter="transition ease-out duration-150"
                   enterFrom="opacity-0 scale-95"
@@ -241,8 +241,10 @@ const Header: React.FC = () => {
                   </HeadlessMenu.Items>
                 </Transition>
               </HeadlessMenu>
+
+              {/* Auth */}
               {loading ? (
-                <div></div> // Or a loading spinner
+                <div></div>
               ) : (
                 <button
                   onClick={handleAuthAction}
@@ -261,7 +263,7 @@ const Header: React.FC = () => {
             {/* Mobile Auth */}
             <div className="lg:hidden">
               {loading ? (
-                <div></div> // Or a loading spinner
+                <div></div>
               ) : (
                 <button
                   onClick={handleAuthAction}
@@ -280,18 +282,19 @@ const Header: React.FC = () => {
         </div>
       </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Slide Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[1002]">
           <div
             className="absolute inset-0 bg-black/30"
             onClick={() => setMobileMenuOpen(false)}
           />
+
           <div
             ref={mobileMenuRef}
             className="absolute top-0 left-0 h-full w-4/5 max-w-sm bg-white dark:bg-gray-900 shadow-xl overflow-y-auto"
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+            <div className="sticky top-0 flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-3">
                 <Plane className="w-6 h-6 text-cyan-600" />
                 <h2 className="text-lg font-bold">Flight Booking</h2>
@@ -334,16 +337,16 @@ const Header: React.FC = () => {
                 )}
               </div>
 
+              {/* Explore */}
               <Link
                 to="/explore"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
               >
-                <Globe className="w-5 h-5" />
                 <span className="font-medium">Explore</span>
               </Link>
 
-              {/* Language */}
+              {/* LANGUAGE ONLY – Globe Button Removed */}
               <div>
                 <button
                   onClick={() => toggleMobileDropdown("language")}
@@ -352,7 +355,6 @@ const Header: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <img
                       src={selectedCountry.flag}
-                      alt=""
                       className="w-6 h-4 rounded"
                     />
                     <span className="font-medium">Language & Region</span>
@@ -363,6 +365,7 @@ const Header: React.FC = () => {
                     }`}
                   />
                 </button>
+
                 {mobileDropdowns.language && (
                   <div className="ml-3 mt-2 space-y-2">
                     {countries.map((country) => (
@@ -375,14 +378,10 @@ const Header: React.FC = () => {
                         className={`flex w-full items-center gap-3 p-2 rounded ${
                           selectedCountry.code === country.code
                             ? "bg-blue-50"
-                            : "hover:bg-gray-50"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800"
                         }`}
                       >
-                        <img
-                          src={country.flag}
-                          alt=""
-                          className="w-6 h-4 rounded"
-                        />
+                        <img src={country.flag} className="w-6 h-4 rounded" />
                         <div className="text-left">
                           <div className="font-medium text-sm">
                             {country.name}
@@ -397,14 +396,16 @@ const Header: React.FC = () => {
                 )}
               </div>
 
+              {/* Auth */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 {loading ? (
                   <div></div>
                 ) : (
                   <button
-                                      onClick={handleAuthAction}
-                                      className="flex w-full items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition"
-                                      title={currentUser ? "Sign Out" : "Login"}                  >
+                    onClick={handleAuthAction}
+                    className="flex w-full items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition"
+                    title={currentUser ? "Sign Out" : "Login"}
+                  >
                     {currentUser ? (
                       <UserMinus className="w-5 h-5" />
                     ) : (

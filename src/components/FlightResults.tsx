@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { FlightResult } from "../types";
 
+import { useFilterStore } from "../store/filterStore";
+
 const ITEMS_PER_PAGE = 10;
 
 interface Props {
@@ -15,6 +17,7 @@ export default function FlightResults({
   sortBy,
 }: Props) {
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
+  const { filters } = useFilterStore();
 
   const getAirlineCode = (name: string) => {
     const map: Record<string, string> = {
@@ -45,9 +48,61 @@ export default function FlightResults({
     )}' rx='12'/><text x='50' y='58' font-size='36' text-anchor='middle' fill='white' font-weight='900'>${code}</text></svg>`;
   };
 
+  // Filtering Logic
+  const filteredFlights = useMemo(() => {
+    return flights.filter((flight) => {
+      // Price range filter
+      if (filters.priceRange) {
+        if (
+          flight.price < filters.priceRange.min ||
+          flight.price > filters.priceRange.max
+        ) {
+          return false;
+        }
+      }
+
+      // Stops filter
+      if (filters.maxStops !== undefined && flight.stops > filters.maxStops) {
+        return false;
+      }
+
+      // Airlines filter
+      if (filters.airlines && filters.airlines.length > 0) {
+        if (!filters.airlines.includes(flight.airlineCode || flight.airline)) {
+          return false;
+        }
+      }
+
+      // Alliances filter (if flight has alliance info)
+      if (filters.alliances && filters.alliances.length > 0) {
+        if (!flight.alliance || !filters.alliances.includes(flight.alliance)) {
+          return false;
+        }
+      }
+
+      // Flight duration filter
+      if (
+        filters.maxFlightDuration &&
+        flight.duration > filters.maxFlightDuration
+      ) {
+        return false;
+      }
+
+      // Hide basic tickets (if cabin class is economy/basic)
+      if (
+        filters.hideBasicTickets &&
+        flight.cabinClass?.toLowerCase() === "economy"
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [flights, filters]);
+
   // Sorting Logic
   const sortedFlights = useMemo(() => {
-    const list = [...flights];
+    const list = [...filteredFlights];
     if (sortBy === "cheapest") {
       return list.sort((a, b) => a.price - b.price);
     }
@@ -60,7 +115,7 @@ export default function FlightResults({
       const scoreB = b.price * 0.6 + b.duration * 0.3 + b.stops * 120;
       return scoreA - scoreB;
     });
-  }, [flights, sortBy]);
+  }, [filteredFlights, sortBy]);
 
   const displayedFlights = sortedFlights.slice(0, displayedCount);
   const hasMore = displayedCount < sortedFlights.length;
@@ -146,7 +201,9 @@ export default function FlightResults({
                   <div className="text-2xl font-bold text-gray-900">
                     {flight.departureTime}
                   </div>
-                  <div className="text-sm font-medium text-gray-600">DAC</div>
+                  <div className="text-sm font-medium text-gray-600">
+                    {flight.departureAirport}
+                  </div>
                 </div>
 
                 <div className="flex-shrink-0 px-4">
@@ -163,7 +220,9 @@ export default function FlightResults({
                   <div className="text-2xl font-bold text-gray-900">
                     {flight.arrivalTime}
                   </div>
-                  <div className="text-sm font-medium text-gray-600">CXB</div>
+                  <div className="text-sm font-medium text-gray-600">
+                    {flight.arrivalAirport}
+                  </div>
                 </div>
               </div>
 
@@ -218,7 +277,7 @@ export default function FlightResults({
                       {flight.departureTime}
                     </div>
                     <div className="text-base lg:text-lg font-medium text-gray-600">
-                      DAC
+                      {flight.departureAirport}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
                       {flight.stops === 0
@@ -237,7 +296,7 @@ export default function FlightResults({
                       {flight.arrivalTime}
                     </div>
                     <div className="text-base lg:text-lg font-medium text-gray-600">
-                      CXB
+                      {flight.arrivalAirport}
                     </div>
                     <div className="text-sm font-medium text-blue-600 mt-1">
                       {Math.floor(flight.duration / 60)}h {flight.duration % 60}

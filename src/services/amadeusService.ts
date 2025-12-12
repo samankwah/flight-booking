@@ -967,6 +967,8 @@ function getMockFlightResults(params: FlightSearchParams): FlightResult[] {
       id: `flight-${i + 1}`,
       airline: getAirlineName(airlineCode),
       airlineCode,
+      departureAirport: params.from,
+      arrivalAirport: params.to,
       departureTime,
       arrivalTime,
       duration,
@@ -1093,6 +1095,8 @@ export async function searchFlights(
         id: offer.id,
         airline: airlineName,
         airlineCode: carrierCode, // Add the IATA code
+        departureAirport: firstSegment.departure.iataCode,
+        arrivalAirport: lastSegment.arrival.iataCode,
         departureTime: formatTime(firstSegment.departure.at),
         arrivalTime: formatTime(lastSegment.arrival.at),
         duration: outboundDuration,
@@ -3336,9 +3340,87 @@ export async function getNearbyAirports(
     console.warn(
       "⚠️ Amadeus API credentials not found. Returning mock nearby airports for development."
     );
-    // Return mock nearby airports based on approximate user location
-    // This is just for development - in production you'd want real API data
-    // Assuming user is in New York area for demo purposes
+
+    // Check if coordinates are within Ghana bounds
+    // Ghana coordinates: approximately 4.5°N to 11°N latitude, 3.1°W to 1.2°E longitude
+    const isInGhana = latitude >= 4.5 && latitude <= 11 && longitude >= -3.1 && longitude <= 1.2;
+
+    if (isInGhana) {
+      console.log("🇬🇭 Returning Ghana airports for coordinates:", { latitude, longitude });
+      return [
+        {
+          iataCode: "ACC",
+          name: "Kotoka International Airport",
+          distance: { value: 5, unit: "KM" },
+          address: { cityName: "Accra", countryCode: "GH" },
+        },
+        {
+          iataCode: "TML",
+          name: "Takoradi Airport",
+          distance: { value: 180, unit: "KM" },
+          address: { cityName: "Takoradi", countryCode: "GH" },
+        },
+        {
+          iataCode: "KMS",
+          name: "Kumasi Airport",
+          distance: { value: 250, unit: "KM" },
+          address: { cityName: "Kumasi", countryCode: "GH" },
+        },
+      ];
+    }
+
+    // Check for other African countries (rough bounds)
+    const isInAfrica = latitude >= -35 && latitude <= 37 && longitude >= -25 && longitude <= 55;
+    if (isInAfrica) {
+      return [
+        {
+          iataCode: "ADD",
+          name: "Bole International Airport",
+          distance: { value: 10, unit: "KM" },
+          address: { cityName: "Addis Ababa", countryCode: "ET" },
+        },
+        {
+          iataCode: "NBO",
+          name: "Jomo Kenyatta International Airport",
+          distance: { value: 15, unit: "KM" },
+          address: { cityName: "Nairobi", countryCode: "KE" },
+        },
+        {
+          iataCode: "JNB",
+          name: "O.R. Tambo International Airport",
+          distance: { value: 20, unit: "KM" },
+          address: { cityName: "Johannesburg", countryCode: "ZA" },
+        },
+      ];
+    }
+
+    // Check for European coordinates
+    const isInEurope = latitude >= 35 && latitude <= 72 && longitude >= -25 && longitude <= 70;
+    if (isInEurope) {
+      return [
+        {
+          iataCode: "LHR",
+          name: "Heathrow Airport",
+          distance: { value: 25, unit: "KM" },
+          address: { cityName: "London", countryCode: "GB" },
+        },
+        {
+          iataCode: "CDG",
+          name: "Charles de Gaulle Airport",
+          distance: { value: 20, unit: "KM" },
+          address: { cityName: "Paris", countryCode: "FR" },
+        },
+        {
+          iataCode: "FRA",
+          name: "Frankfurt Airport",
+          distance: { value: 12, unit: "KM" },
+          address: { cityName: "Frankfurt", countryCode: "DE" },
+        },
+      ];
+    }
+
+    // Default to New York area for demo purposes
+    console.log("📍 Returning default New York airports for coordinates:", { latitude, longitude });
     return [
       {
         iataCode: "JFK",

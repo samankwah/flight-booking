@@ -19,6 +19,9 @@ import DashboardPage from "./pages/DashboardPage"; // Import DashboardPage
 import ProtectedRoute from "./components/ProtectedRoute"; // Import ProtectedRoute
 import SpecialOffers from "./components/SpecialOffers";
 import TopDeals from "./components/TopDeals";
+import VisaResults from "./pages/VisaResults";
+import VisaApplication from "./pages/VisaApplication";
+import VisaConfirmation from "./pages/VisaConfirmation";
 
 const App: React.FC = () => {
   return (
@@ -38,6 +41,9 @@ const App: React.FC = () => {
           <Route path="/flights" element={<FlightSearchPage />} />
           <Route path="/hotels" element={<HotelSearchPage />} />
           <Route path="/packages" element={<HolidayPackagePage />} />
+          <Route path="/visa/results" element={<VisaResults />} />
+          <Route path="/visa/apply" element={<VisaApplication />} />
+          <Route path="/visa/confirmation" element={<VisaConfirmation />} />
           <Route path="/offers" element={<SpecialOffers />} />
           <Route path="/deals" element={<TopDeals />} />
           {/* Protected Routes */}

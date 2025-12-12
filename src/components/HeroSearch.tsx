@@ -16,7 +16,15 @@ import {
 import { useNavigate } from "react-router-dom";
 import { airports } from "../data/mockData";
 import type { Airport } from "../types";
-import { searchFlights, searchAirports, getNearbyAirports, AirportSearchResult, NearbyAirportResult, searchHotels, HotelSearchResult } from "../services/amadeusService";
+import {
+  searchFlights,
+  searchAirports,
+  getNearbyAirports,
+  AirportSearchResult,
+  NearbyAirportResult,
+  searchHotels,
+  HotelSearchResult,
+} from "../services/amadeusService";
 
 interface SearchFormData {
   from: Airport | null;
@@ -35,7 +43,7 @@ interface SearchFormData {
   packageStartDate: string;
   packageEndDate: string;
   duration: number;
-  packageType: 'budget' | 'standard' | 'luxury';
+  packageType: "budget" | "standard" | "luxury";
   budgetRange: number;
 }
 
@@ -65,16 +73,16 @@ const HeroSearch: React.FC = () => {
     passengers: { adults: 1, children: 0, infants: 0 },
     rooms: 1,
     visaCountry: "",
-    nationality: "",
+    nationality: "Ghana", // Default to Ghana for Ghanaian users
     visaTravelDate: "",
     hotelDestination: "",
-    checkInDate: tomorrow.toISOString().split('T')[0],
-    checkOutDate: dayAfterTomorrow.toISOString().split('T')[0],
+    checkInDate: tomorrow.toISOString().split("T")[0],
+    checkOutDate: dayAfterTomorrow.toISOString().split("T")[0],
     packageDestination: "",
-    packageStartDate: tomorrow.toISOString().split('T')[0],
-    packageEndDate: dayAfterTomorrow.toISOString().split('T')[0],
+    packageStartDate: tomorrow.toISOString().split("T")[0],
+    packageEndDate: dayAfterTomorrow.toISOString().split("T")[0],
     duration: 7,
-    packageType: 'standard' as 'budget' | 'standard' | 'luxury',
+    packageType: "standard" as "budget" | "standard" | "luxury",
     budgetRange: 50000,
   });
 
@@ -89,18 +97,26 @@ const HeroSearch: React.FC = () => {
   const [toAirports, setToAirports] = useState<AirportSearchResult[]>([]);
   const [fromLoading, setFromLoading] = useState(false);
   const [toLoading, setToLoading] = useState(false);
-  const [fromSearchTimeout, setFromSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [toSearchTimeout, setToSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [fromSearchTimeout, setFromSearchTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+  const [toSearchTimeout, setToSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   // Nearby airports state
-  const [nearbyAirports, setNearbyAirports] = useState<NearbyAirportResult[]>([]);
+  const [nearbyAirports, setNearbyAirports] = useState<NearbyAirportResult[]>(
+    []
+  );
   const [locationLoading, setLocationLoading] = useState(false);
 
   // Hotel search state
-  const [hotelSearchResults, setHotelSearchResults] = useState<HotelSearchResult[]>([]);
+  const [hotelSearchResults, setHotelSearchResults] = useState<
+    HotelSearchResult[]
+  >([]);
   const [hotelLoading, setHotelLoading] = useState(false);
   const [showHotelDropdown, setShowHotelDropdown] = useState(false);
-  const [hotelSearchTimeout, setHotelSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [hotelSearchTimeout, setHotelSearchTimeout] =
+    useState<NodeJS.Timeout | null>(null);
 
   const [activeCalendar, setActiveCalendar] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -123,46 +139,103 @@ const HeroSearch: React.FC = () => {
 
       setLocationLoading(true);
       try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000, // 5 minutes
-          });
-        });
+        const position = await new Promise<GeolocationPosition>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 300000, // 5 minutes
+            });
+          }
+        );
 
         const { latitude, longitude } = position.coords;
         console.log("📍 User location:", { latitude, longitude });
 
-        const nearby = await getNearbyAirports(latitude, longitude, 100);
-        setNearbyAirports(nearby);
+        // Check if user is in Ghana (rough coordinate bounds)
+        // Ghana coordinates: approximately 4.5°N to 11°N latitude, 3.1°W to 1.2°E longitude
+        const isInGhana =
+          latitude >= 4.5 &&
+          latitude <= 11 &&
+          longitude >= -3.1 &&
+          longitude <= 1.2;
 
-        if (nearby.length > 0) {
-          const nearest = nearby[0];
-          console.log("🏠 Setting nearest airport as default:", nearest);
-
-          setFormData(prev => ({
+        if (isInGhana) {
+          console.log(
+            "🇬🇭 User detected in Ghana, setting ACC (Kotoka International Airport) as default"
+          );
+          setFormData((prev) => ({
             ...prev,
             from: {
-              code: nearest.iataCode,
-              name: nearest.name,
-              city: nearest.address.cityName,
-              country: nearest.address.countryCode,
+              code: "ACC",
+              name: "Kotoka International Airport",
+              city: "Accra",
+              country: "GH",
             },
           }));
+        } else {
+          // Try to get nearby airports for other locations
+          const nearby = await getNearbyAirports(latitude, longitude, 100);
+          setNearbyAirports(nearby);
+
+          if (nearby.length > 0) {
+            const nearest = nearby[0];
+            console.log("🏠 Setting nearest airport as default:", nearest);
+
+            setFormData((prev) => ({
+              ...prev,
+              from: {
+                code: nearest.iataCode,
+                name: nearest.name,
+                city: nearest.address.cityName,
+                country: nearest.address.countryCode,
+              },
+            }));
+          } else {
+            // Fallback to JFK if no nearby airports found
+            setFormData((prev) => ({
+              ...prev,
+              from: {
+                code: "JFK",
+                name: "John F Kennedy International",
+                city: "New York",
+                country: "US",
+              },
+            }));
+          }
         }
       } catch (error) {
         console.error("❌ Error getting user location:", error);
-        // If geolocation fails, set a default airport
-        setFormData(prev => ({
-          ...prev,
-          from: {
-            code: "JFK",
-            name: "John F Kennedy International",
-            city: "New York",
-            country: "US",
-          },
-        }));
+        // If geolocation fails, try to detect based on browser locale or fallback to ACC for Ghana
+        const userLocale = navigator.language || "en-US";
+        const isLikelyGhana =
+          userLocale.includes("en-GH") || userLocale.includes("GH");
+
+        if (isLikelyGhana) {
+          console.log(
+            "🇬🇭 Browser locale suggests Ghana, setting ACC as default"
+          );
+          setFormData((prev) => ({
+            ...prev,
+            from: {
+              code: "ACC",
+              name: "Kotoka International Airport",
+              city: "Accra",
+              country: "GH",
+            },
+          }));
+        } else {
+          // Default fallback
+          setFormData((prev) => ({
+            ...prev,
+            from: {
+              code: "JFK",
+              name: "John F Kennedy International",
+              city: "New York",
+              country: "US",
+            },
+          }));
+        }
       } finally {
         setLocationLoading(false);
       }
@@ -176,9 +249,10 @@ const HeroSearch: React.FC = () => {
       const target = event.target as Element;
 
       // Check if click is on calendar picker (don't close if clicking on calendar)
-      const isClickOnCalendar = target.closest('.calendar-picker') ||
-                               target.closest('[class*="CalendarPicker"]') ||
-                               target.closest('.grid.grid-cols-7');
+      const isClickOnCalendar =
+        target.closest(".calendar-picker") ||
+        target.closest('[class*="CalendarPicker"]') ||
+        target.closest(".grid.grid-cols-7");
 
       if (fromRef.current && !fromRef.current.contains(target))
         setShowFromDropdown(false);
@@ -195,10 +269,7 @@ const HeroSearch: React.FC = () => {
           setActiveCalendar(null);
       }
 
-      if (
-        passengerRef.current &&
-        !passengerRef.current.contains(target)
-      )
+      if (passengerRef.current && !passengerRef.current.contains(target))
         setShowPassengerDropdown(false);
       if (
         calendarRef.current &&
@@ -321,7 +392,7 @@ const HeroSearch: React.FC = () => {
   const handleSelectHotel = (hotel: HotelSearchResult) => {
     setFormData((prev) => ({
       ...prev,
-      hotelDestination: `${hotel.name} - ${hotel.address.cityName}, ${hotel.address.countryCode}`
+      hotelDestination: `${hotel.name} - ${hotel.address.cityName}, ${hotel.address.countryCode}`,
     }));
     setShowHotelDropdown(false);
     setHotelSearchResults([]);
@@ -368,66 +439,148 @@ const HeroSearch: React.FC = () => {
     formData.passengers.children +
     formData.passengers.infants;
   const handleSearch = () => {
-    if (activeTab === 'flight') {
+    console.log("🔍 Search triggered for tab:", activeTab);
+    console.log("📋 Current form data:", formData);
+
+    if (activeTab === "flight") {
+      console.log("✈️ Flight search - checking required fields");
+      if (
+        !formData.from?.code ||
+        !formData.to?.code ||
+        !formData.departureDate
+      ) {
+        alert(
+          "Please select departure airport, destination, and departure date"
+        );
+        return;
+      }
+
       // Build flight search parameters
       const params = new URLSearchParams();
 
-      if (formData.from?.code) params.append('from', formData.from.code);
-      if (formData.to?.code) params.append('to', formData.to.code);
-      if (formData.departureDate) params.append('departureDate', formData.departureDate);
-      if (formData.returnDate) params.append('returnDate', formData.returnDate);
-      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
-      if (formData.passengers.children) params.append('children', formData.passengers.children.toString());
-      if (formData.passengers.infants) params.append('infants', formData.passengers.infants.toString());
+      if (formData.from?.code) params.append("from", formData.from.code);
+      if (formData.to?.code) params.append("to", formData.to.code);
+      if (formData.departureDate)
+        params.append("departureDate", formData.departureDate);
+      if (formData.returnDate) params.append("returnDate", formData.returnDate);
+      if (formData.passengers.adults)
+        params.append("adults", formData.passengers.adults.toString());
+      if (formData.passengers.children)
+        params.append("children", formData.passengers.children.toString());
+      if (formData.passengers.infants)
+        params.append("infants", formData.passengers.infants.toString());
 
       // Add travel class
-      const travelClass = cabinClass === 'economy' ? 'ECONOMY' :
-                         cabinClass === 'business' ? 'BUSINESS' :
-                         cabinClass === 'firstClass' ? 'FIRST' : 'ECONOMY';
-      params.append('travelClass', travelClass);
+      const travelClass =
+        cabinClass === "economy"
+          ? "ECONOMY"
+          : cabinClass === "business"
+          ? "BUSINESS"
+          : cabinClass === "firstClass"
+          ? "FIRST"
+          : "ECONOMY";
+      params.append("travelClass", travelClass);
 
+      console.log("✈️ Navigating to flights with params:", params.toString());
       // Navigate to flights page with search parameters
       navigate(`/flights?${params.toString()}`);
-    } else if (activeTab === 'hotel') {
+    } else if (activeTab === "hotel") {
+      console.log("🏨 Hotel search - checking required fields");
+      if (
+        !formData.hotelDestination ||
+        !formData.checkInDate ||
+        !formData.checkOutDate
+      ) {
+        alert("Please select destination, check-in and check-out dates");
+        return;
+      }
+
       // Build hotel search parameters
       const params = new URLSearchParams();
 
-      if (formData.hotelDestination) params.append('destination', formData.hotelDestination);
-      if (formData.checkInDate) params.append('checkInDate', formData.checkInDate);
-      if (formData.checkOutDate) params.append('checkOutDate', formData.checkOutDate);
-      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
-      if (formData.rooms) params.append('rooms', formData.rooms.toString());
+      if (formData.hotelDestination)
+        params.append("destination", formData.hotelDestination);
+      if (formData.checkInDate)
+        params.append("checkInDate", formData.checkInDate);
+      if (formData.checkOutDate)
+        params.append("checkOutDate", formData.checkOutDate);
+      if (formData.passengers.adults)
+        params.append("adults", formData.passengers.adults.toString());
+      if (formData.rooms) params.append("rooms", formData.rooms.toString());
 
+      console.log("🏨 Navigating to hotels with params:", params.toString());
       // Navigate to hotels page with search parameters
       navigate(`/hotels?${params.toString()}`);
-    } else if (activeTab === 'package') {
+    } else if (activeTab === "package") {
+      console.log("🎁 Package search - checking required fields");
+      if (
+        !formData.packageDestination ||
+        !formData.packageStartDate ||
+        !formData.duration
+      ) {
+        alert("Please select destination, departure date, and duration");
+        return;
+      }
+
       // Build holiday package search parameters
       const params = new URLSearchParams();
 
-      if (formData.packageDestination) params.append('destination', formData.packageDestination.trim());
-      if (formData.packageStartDate) params.append('departureDate', formData.packageStartDate);
-      if (formData.duration) params.append('duration', formData.duration.toString());
-      if (formData.packageType) params.append('packageType', formData.packageType);
-      if (formData.passengers.adults) params.append('adults', formData.passengers.adults.toString());
-      if (formData.passengers.children) params.append('children', formData.passengers.children.toString());
-      if (formData.budgetRange) params.append('budget', formData.budgetRange.toString());
+      if (formData.packageDestination)
+        params.append("destination", formData.packageDestination.trim());
+      if (formData.packageStartDate)
+        params.append("departureDate", formData.packageStartDate);
+      if (formData.duration)
+        params.append("duration", formData.duration.toString());
+      if (formData.packageType)
+        params.append("packageType", formData.packageType);
+      if (formData.passengers.adults)
+        params.append("adults", formData.passengers.adults.toString());
+      if (formData.passengers.children)
+        params.append("children", formData.passengers.children.toString());
+      if (formData.budgetRange)
+        params.append("budget", formData.budgetRange.toString());
 
       // Calculate return date based on duration if not already set
       if (!formData.packageEndDate) {
         const returnDate = new Date(formData.packageStartDate);
         returnDate.setDate(returnDate.getDate() + formData.duration);
-        params.append('returnDate', returnDate.toISOString().split('T')[0]);
+        params.append("returnDate", returnDate.toISOString().split("T")[0]);
       }
 
       // Calculate return date based on duration
       const returnDate = new Date(formData.packageStartDate);
       returnDate.setDate(returnDate.getDate() + formData.duration);
-      params.append('returnDate', returnDate.toISOString().split('T')[0]);
+      params.append("returnDate", returnDate.toISOString().split("T")[0]);
 
+      console.log("🎁 Navigating to packages with params:", params.toString());
       // Navigate to packages page with search parameters
       navigate(`/packages?${params.toString()}`);
+    } else if (activeTab === "visa") {
+      console.log("🛂 Visa search - checking required fields");
+      if (!formData.visaCountry || !formData.nationality) {
+        alert("Please select destination country and your nationality");
+        return;
+      }
+
+      // Build visa search parameters
+      const params = new URLSearchParams();
+
+      if (formData.visaCountry) params.append("country", formData.visaCountry);
+      if (formData.nationality)
+        params.append("nationality", formData.nationality);
+      if (formData.visaTravelDate)
+        params.append("travelDate", formData.visaTravelDate);
+
+      console.log(
+        "🛂 Navigating to visa results with params:",
+        params.toString()
+      );
+      // Navigate to visa results page with search parameters
+      navigate(`/visa/results?${params.toString()}`);
+    } else {
+      console.error("❌ Unknown tab:", activeTab);
+      alert("Unknown search type. Please try again.");
     }
-    // Add other tab handlers as needed
   };
   const today = new Date().toISOString().split("T")[0];
 
@@ -622,12 +775,18 @@ const HeroSearch: React.FC = () => {
                       )}
                     </label>
                     <div className="font-semibold text-base sm:text-lg">
-                      {locationLoading ? "Detecting location..." : (formData.from?.city || "Select City")}
+                      {locationLoading
+                        ? "Detecting location..."
+                        : formData.from?.city || "Select City"}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 truncate">
-                      {locationLoading ? "Finding nearest airport..." : (
-                        formData.from?.code ? `${formData.from.code}, ${formData.from.name.substring(0, 25)}...` : ""
-                      )}
+                      {locationLoading
+                        ? "Finding nearest airport..."
+                        : formData.from?.code
+                        ? `${
+                            formData.from.code
+                          }, ${formData.from.name.substring(0, 25)}...`
+                        : ""}
                     </div>
                   </div>
                   {showFromDropdown && (
@@ -637,7 +796,9 @@ const HeroSearch: React.FC = () => {
                           type="text"
                           placeholder="Search airports and cities..."
                           value={searchFrom}
-                          onChange={(e) => handleFromSearchChange(e.target.value)}
+                          onChange={(e) =>
+                            handleFromSearchChange(e.target.value)
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                           autoFocus
                         />
@@ -660,19 +821,22 @@ const HeroSearch: React.FC = () => {
                           fromAirports.map((airport) => (
                             <div
                               key={`${airport.iataCode}-${airport.subType}`}
-                              onClick={() => handleSelectFrom({
-                                code: airport.iataCode,
-                                name: airport.name,
-                                city: airport.address.cityName,
-                                country: airport.address.countryCode
-                              })}
+                              onClick={() =>
+                                handleSelectFrom({
+                                  code: airport.iataCode,
+                                  name: airport.name,
+                                  city: airport.address.cityName,
+                                  country: airport.address.countryCode,
+                                })
+                              }
                               className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
                             >
                               <div className="font-semibold text-gray-900">
                                 {airport.name}
                               </div>
                               <div className="text-sm text-gray-600">
-                                {airport.iataCode} - {airport.address.cityName}, {airport.address.countryCode}
+                                {airport.iataCode} - {airport.address.cityName},{" "}
+                                {airport.address.countryCode}
                               </div>
                             </div>
                           ))
@@ -700,7 +864,12 @@ const HeroSearch: React.FC = () => {
                       {formData.to?.city || "Select City"}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 truncate">
-                      {formData.to?.code ? `${formData.to.code}, ${formData.to.name.substring(0, 25)}...` : ""}
+                      {formData.to?.code
+                        ? `${formData.to.code}, ${formData.to.name.substring(
+                            0,
+                            25
+                          )}...`
+                        : ""}
                     </div>
                   </div>
                   <button
@@ -743,19 +912,22 @@ const HeroSearch: React.FC = () => {
                           toAirports.map((airport) => (
                             <div
                               key={`${airport.iataCode}-${airport.subType}`}
-                              onClick={() => handleSelectTo({
-                                code: airport.iataCode,
-                                name: airport.name,
-                                city: airport.address.cityName,
-                                country: airport.address.countryCode
-                              })}
+                              onClick={() =>
+                                handleSelectTo({
+                                  code: airport.iataCode,
+                                  name: airport.name,
+                                  city: airport.address.cityName,
+                                  country: airport.address.countryCode,
+                                })
+                              }
                               className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
                             >
                               <div className="font-semibold text-gray-900">
                                 {airport.name}
                               </div>
                               <div className="text-sm text-gray-600">
-                                {airport.iataCode} - {airport.address.cityName}, {airport.address.countryCode}
+                                {airport.iataCode} - {airport.address.cityName},{" "}
+                                {airport.address.countryCode}
                               </div>
                             </div>
                           ))
@@ -851,7 +1023,8 @@ const HeroSearch: React.FC = () => {
                         Room & Traveler
                       </label>
                       <div className="font-semibold text-base sm:text-lg">
-                        {formData.rooms} Room, {getTotalPassengers()} Traveler{getTotalPassengers() !== 1 ? 's' : ''}
+                        {formData.rooms} Room, {getTotalPassengers()} Traveler
+                        {getTotalPassengers() !== 1 ? "s" : ""}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-500">
                         {formData.passengers.adults} Adult
@@ -1108,7 +1281,10 @@ const HeroSearch: React.FC = () => {
           {activeTab === "hotel" && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="relative bg-gray-50 p-4 rounded-lg" ref={hotelRef}>
+                <div
+                  className="relative bg-gray-50 p-4 rounded-lg"
+                  ref={hotelRef}
+                >
                   <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Destination
@@ -1117,12 +1293,17 @@ const HeroSearch: React.FC = () => {
                     type="text"
                     value={formData.hotelDestination}
                     onChange={(e) => handleHotelSearchChange(e.target.value)}
-                    onFocus={() => formData.hotelDestination && setShowHotelDropdown(true)}
+                    onFocus={() =>
+                      formData.hotelDestination && setShowHotelDropdown(true)
+                    }
                     placeholder="City or hotel name"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                   {showHotelDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-80 overflow-y-auto" style={{ zIndex: 9999 }}>
+                    <div
+                      className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-80 overflow-y-auto"
+                      style={{ zIndex: 9999 }}
+                    >
                       {hotelLoading ? (
                         <div className="p-3 text-center text-gray-500">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
@@ -1130,12 +1311,16 @@ const HeroSearch: React.FC = () => {
                         </div>
                       ) : hotelSearchResults.length === 0 ? (
                         <div className="p-3 text-center text-gray-500">
-                          {formData.hotelDestination.length === 0 ? "Start typing to search hotels and cities..." : `No hotels found for "${formData.hotelDestination}"`}
+                          {formData.hotelDestination.length === 0
+                            ? "Start typing to search hotels and cities..."
+                            : `No hotels found for "${formData.hotelDestination}"`}
                         </div>
                       ) : (
                         hotelSearchResults.map((hotel, index) => (
                           <div
-                            key={`${hotel.hotelIds?.[0] || hotel.name}-${index}`}
+                            key={`${
+                              hotel.hotelIds?.[0] || hotel.name
+                            }-${index}`}
                             onClick={() => handleSelectHotel(hotel)}
                             className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
@@ -1143,7 +1328,8 @@ const HeroSearch: React.FC = () => {
                               {hotel.name}
                             </div>
                             <div className="text-sm text-gray-600">
-                              {hotel.address.cityName}, {hotel.address.countryCode}
+                              {hotel.address.cityName},{" "}
+                              {hotel.address.countryCode}
                               {hotel.iataCode && ` (${hotel.iataCode})`}
                             </div>
                             {hotel.relevance && (
@@ -1435,7 +1621,10 @@ const HeroSearch: React.FC = () => {
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        packageType: e.target.value as 'budget' | 'standard' | 'luxury',
+                        packageType: e.target.value as
+                          | "budget"
+                          | "standard"
+                          | "luxury",
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"

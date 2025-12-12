@@ -53,16 +53,141 @@ export const airports: Airport[] = [
     latitude: 25.2532,
     longitude: 55.3657,
   },
+  {
+    code: "ACC",
+    name: "Kotoka International Airport",
+    city: "Accra",
+    country: "Ghana",
+    latitude: 5.6052,
+    longitude: -0.1668,
+  },
+  {
+    code: "TML",
+    name: "Takoradi Airport",
+    city: "Takoradi",
+    country: "Ghana",
+    latitude: 4.8961,
+    longitude: -1.7746,
+  },
+  {
+    code: "KMS",
+    name: "Kumasi Airport",
+    city: "Kumasi",
+    country: "Ghana",
+    latitude: 6.7146,
+    longitude: -1.5908,
+  },
 ];
 
 export const airlines: Airline[] = [
-  { id: "1", name: "Air Sial", code: "PF" },
-  { id: "2", name: "PIA", code: "PK" },
-  { id: "3", name: "SereneAir", code: "ER" },
-  { id: "4", name: "FlyJinnah", code: "9P" },
-  { id: "5", name: "airblue", code: "PA" },
-  { id: "6", name: "flydubai", code: "FZ" },
-  { id: "7", name: "Air Arabia", code: "G9" },
+  {
+    id: "1",
+    name: "Emirates",
+    code: "EK",
+    logo: "https://www.airhex.com/images/airlines/small/EK.png"
+  },
+  {
+    id: "2",
+    name: "Qatar Airways",
+    code: "QR",
+    logo: "https://www.airhex.com/images/airlines/small/QR.png"
+  },
+  {
+    id: "3",
+    name: "Turkish Airlines",
+    code: "TK",
+    logo: "https://www.airhex.com/images/airlines/small/TK.png"
+  },
+  {
+    id: "4",
+    name: "Lufthansa",
+    code: "LH",
+    logo: "https://www.airhex.com/images/airlines/small/LH.png"
+  },
+  {
+    id: "5",
+    name: "British Airways",
+    code: "BA",
+    logo: "https://www.airhex.com/images/airlines/small/BA.png"
+  },
+  {
+    id: "6",
+    name: "KLM Royal Dutch Airlines",
+    code: "KL",
+    logo: "https://www.airhex.com/images/airlines/small/KL.png"
+  },
+  {
+    id: "7",
+    name: "Air France",
+    code: "AF",
+    logo: "https://www.airhex.com/images/airlines/small/AF.png"
+  },
+  {
+    id: "8",
+    name: "Delta Air Lines",
+    code: "DL",
+    logo: "https://www.airhex.com/images/airlines/small/DL.png"
+  },
+  {
+    id: "9",
+    name: "American Airlines",
+    code: "AA",
+    logo: "https://www.airhex.com/images/airlines/small/AA.png"
+  },
+  {
+    id: "10",
+    name: "United Airlines",
+    code: "UA",
+    logo: "https://www.airhex.com/images/airlines/small/UA.png"
+  },
+  {
+    id: "11",
+    name: "Air Canada",
+    code: "AC",
+    logo: "https://www.airhex.com/images/airlines/small/AC.png"
+  },
+  {
+    id: "12",
+    name: "Pakistan International Airlines",
+    code: "PK",
+    logo: "https://www.airhex.com/images/airlines/small/PK.png"
+  },
+  {
+    id: "13",
+    name: "flydubai",
+    code: "FZ",
+    logo: "https://www.airhex.com/images/airlines/small/FZ.png"
+  },
+  {
+    id: "14",
+    name: "Air Arabia",
+    code: "G9",
+    logo: "https://www.airhex.com/images/airlines/small/G9.png"
+  },
+  {
+    id: "15",
+    name: "airblue",
+    code: "PA",
+    logo: "https://www.airhex.com/images/airlines/small/PA.png"
+  },
+  {
+    id: "16",
+    name: "SereneAir",
+    code: "ER",
+    logo: "https://logos-world.net/wp-content/uploads/2020/03/Serene-Air-Logo.png"
+  },
+  {
+    id: "17",
+    name: "FlyJinnah",
+    code: "9P",
+    logo: "https://logos-world.net/wp-content/uploads/2020/11/FlyJinnah-Logo.png"
+  },
+  {
+    id: "18",
+    name: "Air Sial",
+    code: "PF",
+    logo: "https://logos-world.net/wp-content/uploads/2020/03/Air-Sial-Logo.png"
+  }
 ];
 
 export const flightResultsMock: FlightResult[] = [
