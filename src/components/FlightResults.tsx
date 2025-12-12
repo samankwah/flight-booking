@@ -30,10 +30,11 @@ export default function FlightResults({
     return map[name] || name.substring(0, 2).toUpperCase();
   };
 
-  const logoUrl = (code: string) =>
-    `https://content.airhex.com/content/logos/airlines_${code}_100_100_s.png`;
+  const getAirlineLogoUrl = (code: string): string => {
+    return `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${code}.svg`;
+  };
 
-  const placeholder = (code: string) => {
+  const getPlaceholderSvg = (code: string): string => {
     const colors = [
       "#3B82F6",
       "#10B981",
@@ -41,11 +42,37 @@ export default function FlightResults({
       "#EF4444",
       "#8B5CF6",
       "#EC4899",
+      "#06B6D4",
+      "#84CC16",
     ];
     const color = colors[code.charCodeAt(0) % colors.length];
-    return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='${encodeURIComponent(
+
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='${encodeURIComponent(
       color
-    )}' rx='12'/><text x='50' y='58' font-size='36' text-anchor='middle' fill='white' font-weight='900'>${code}</text></svg>`;
+    )}' rx='12'/%3E%3Ctext x='50' y='58' font-size='36' text-anchor='middle' fill='white' font-weight='bold' font-family='system-ui, -apple-system, sans-serif'%3E${code}%3C/text%3E%3C/svg%3E`;
+  };
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement>,
+    code: string
+  ) => {
+    const img = e.currentTarget;
+
+    const fallbacks = [
+      `https://images.kiwi.com/airlines/64/${code}.png`,
+      `https://pics.avs.io/200/100/${code}.png`,
+      `https://content.airhex.com/content/logos/airlines_${code}_100_100_s.png`,
+      getPlaceholderSvg(code),
+    ];
+
+    const currentSrc = img.src;
+    const currentIndex = fallbacks.findIndex((url) =>
+      currentSrc.includes(url.split("?")[0])
+    );
+
+    if (currentIndex < fallbacks.length - 1) {
+      img.src = fallbacks[currentIndex + 1];
+    }
   };
 
   // Filtering Logic
@@ -180,9 +207,9 @@ export default function FlightResults({
               <div className="flex items-center justify-between">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex items-center justify-center shadow-inner">
                   <img
-                    src={logoUrl(code)}
+                    src={getAirlineLogoUrl(code)}
                     alt=""
-                    onError={(e) => (e.currentTarget.src = placeholder(code))}
+                    onError={(e) => handleImageError(e, code)}
                     className="w-12 h-12 object-contain"
                     loading="lazy"
                   />
@@ -259,9 +286,9 @@ export default function FlightResults({
               <div className="md:col-span-2 flex justify-center">
                 <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl lg:rounded-2xl flex items-center justify-center shadow-inner">
                   <img
-                    src={logoUrl(code)}
+                    src={getAirlineLogoUrl(code)}
                     alt=""
-                    onError={(e) => (e.currentTarget.src = placeholder(code))}
+                    onError={(e) => handleImageError(e, code)}
                     className="w-16 h-16 lg:w-20 lg:h-20 object-contain"
                     loading="lazy"
                   />
