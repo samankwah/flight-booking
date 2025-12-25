@@ -24,7 +24,11 @@
       "Bash(npm run dev:*)",
       "Bash(timeout:*)",
       "Bash(echo.)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git branch:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
