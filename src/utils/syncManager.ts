@@ -8,7 +8,7 @@
 
 import { syncQueue, bookingDrafts, type SyncQueueItem } from './indexedDB';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface SyncResult {
   success: boolean;
@@ -38,7 +38,7 @@ const syncBooking = async (item: SyncQueueItem): Promise<SyncResult> => {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+    const response = await fetch(`${API_BASE_URL}/bookings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ const syncPriceAlert = async (item: SyncQueueItem): Promise<SyncResult> => {
       throw new Error('Not authenticated');
     }
 
-    let url = `${API_BASE_URL}/api/price-alerts`;
+    let url = `${API_BASE_URL}/price-alerts`;
     let method = 'POST';
 
     if (item.action === 'update') {
@@ -125,7 +125,7 @@ const syncPreferences = async (item: SyncQueueItem): Promise<SyncResult> => {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/notifications/preferences`, {
+    const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ const syncPayment = async (item: SyncQueueItem): Promise<SyncResult> => {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/payments/process`, {
+    const response = await fetch(`${API_BASE_URL}/payments/process`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
