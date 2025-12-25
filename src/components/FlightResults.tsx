@@ -34,15 +34,23 @@ export default function FlightResults({
 
   // Get currency symbol based on currency code
   const getCurrencySymbol = (currencyCode?: string): string => {
-    const code = currencyCode?.toUpperCase() || 'GHS';
+    const code = currencyCode?.toUpperCase() || 'USD';
     const symbols: Record<string, string> = {
-      'GHS': '₵',
-      'NGN': '₦',
       'USD': '$',
       'EUR': '€',
       'GBP': '£',
+      'GHS': '₵',
+      'NGN': '₦',
+      'ZAR': 'R',
+      'KES': 'KSh',
+      'EGP': 'E£',
+      'MAD': 'MAD',
+      'TZS': 'TSh',
+      'UGX': 'USh',
+      'XOF': 'CFA',
+      'XAF': 'FCFA',
     };
-    return symbols[code] || '$';
+    return symbols[code] || code + ' ';
   };
 
   const getAirlineCode = (name: string) => {

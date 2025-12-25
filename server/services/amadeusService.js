@@ -18,7 +18,7 @@ class AmadeusService {
         returnDate: searchParams.returnDate || undefined,
         adults: searchParams.adults || 1,
         travelClass: searchParams.travelClass || "ECONOMY",
-        currencyCode: "USD",
+        currencyCode: searchParams.currency || "USD", // Use requested currency or default to USD
         max: 10,
       });
 
@@ -56,6 +56,7 @@ class AmadeusService {
           duration: duration,
           stops: itinerary.segments.length - 1,
           price: parseFloat(offer.price.total), // Extract numeric price from object
+          currency: offer.price.currency, // Extract currency from API response
           cabinClass:
             offer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin ||
             "ECONOMY",
@@ -209,6 +210,7 @@ class AmadeusService {
           duration: totalDuration,
           stops: allSegments.length - 1,
           price: parseFloat(offer.price.total),
+          currency: offer.price.currency, // Extract currency from API response
           cabinClass:
             offer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin ||
             "ECONOMY",
@@ -250,6 +252,7 @@ class AmadeusService {
           country: destination.destination, // Will need to enrich this
           airport: destination.destination,
           price: parseFloat(destination.price?.total || 0),
+          currency: destination.price?.currency || 'USD', // Extract currency from API response
           departureDate: destination.departureDate,
           returnDate: destination.returnDate,
           origin: origin,

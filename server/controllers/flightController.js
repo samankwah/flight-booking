@@ -129,6 +129,7 @@ const getFallbackDestinations = (origin) => {
     country: dest.country,
     airport: dest.destination,
     price: dest.price,
+    currency: 'USD', // Fallback destinations use USD
     departureDate: departureDate,
     returnDate: returnDateStr,
     origin: origin,
