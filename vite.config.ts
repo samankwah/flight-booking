@@ -90,13 +90,13 @@ export default defineConfig({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable source maps for production debugging (set to true for debugging)
-    sourcemap: false,
+    // Enable source maps for production debugging
+    sourcemap: true,
     // Minification options
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.logs in production
+        drop_console: false, // Keep console.logs for debugging
         drop_debugger: true,
       },
     },
