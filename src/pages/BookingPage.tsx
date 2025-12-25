@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { MdArrowBack as ArrowLeft, MdArrowForward as ArrowRight, MdPerson as User, MdFlight as Plane, MdCreditCard as CreditCard } from "react-icons/md";
+import { useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
+import { MdArrowBack as ArrowLeft, MdArrowForward as ArrowRight, MdPerson as User, MdFlight as Plane, MdCreditCard as CreditCard, MdAirlineSeatReclineNormal as Seat } from "react-icons/md";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
-import { flightResultsMock } from "../data/mockData";
+import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import type { FlightResult, Booking } from "../types";
+import type { PaystackResponse } from "../services/paystackService";
+import PaystackProvider from "../components/PaystackProvider.tsx";
+import PaymentForm from "../components/PaymentForm";
+import SeatSelection, { Seat as SeatType } from "../components/SeatSelection";
 
 // Mock data for payment methods (moved to be accessible)
 const paymentMethods = [
@@ -18,44 +22,70 @@ const paymentMethods = [
 
 const BookingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { currentUser } = useAuth();
 
-  const flightId = searchParams.get("flightId");
-  const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(null);
+  // Get flight data from navigation state
+  const flightFromState = location.state?.flight as FlightResult | undefined;
+  const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(flightFromState || null);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: currentUser?.displayName?.split(" ")[0] || "",
     lastName: currentUser?.displayName?.split(" ")[1] || "",
     email: currentUser?.email || "",
     phone: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvc: "",
-    paymentMethod: "",
+    paymentMethod: "card", // Default to card payment
   });
+  const [selectedSeats, setSelectedSeats] = useState<SeatType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (flightId) {
-      const flight = flightResultsMock.find((f) => f.id === flightId);
-      if (flight) {
-        setSelectedFlight(flight);
-      } else {
-        // Handle case where flight is not found
-        navigate("/flights"); // Redirect back to flights search or a 404
-      }
+    // Check if flight data was passed via navigation state
+    if (!flightFromState) {
+      // No flight data provided, redirect to flight search
+      toast.error("No flight selected. Please search for flights first.");
+      navigate("/flights", { replace: true });
     } else {
-      navigate("/flights"); // Redirect if no flightId is provided
+      setSelectedFlight(flightFromState);
     }
-  }, [flightId, navigate]);
+  }, [flightFromState, navigate]);
+
+  // Early return if no flight is selected - prevents rendering errors
+  if (!selectedFlight) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <div className="animate-pulse">
+          <h1 className="text-2xl font-bold mb-4">Redirecting to flight search...</h1>
+          <p className="text-gray-600">No flight selected. Please search for flights first.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleNextStep = () => {
     // Basic validation for step 1
     if (step === 1) {
       if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
-        setError("Please fill in all passenger information.");
+        const errorMsg = "Please fill in all passenger information.";
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        const errorMsg = "Please enter a valid email address.";
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
+      // Validate phone format (basic check for digits)
+      const phoneRegex = /^\+?[\d\s\-()]{10,}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        const errorMsg = "Please enter a valid phone number (at least 10 digits).";
+        setError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
     }
@@ -72,16 +102,72 @@ const BookingPage: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !selectedFlight) {
-      setError("User not logged in or flight not selected.");
+  const handleSeatsSelected = (seats: SeatType[]) => {
+    setSelectedSeats(seats);
+    setStep(3); // Move to payment step
+  };
+
+  const handlePaymentSuccess = async (paystackResponse: PaystackResponse) => {
+    // Critical null checks - ensure user and flight data exist
+    if (!currentUser) {
+      const errorMsg = "User not logged in. Please sign in and try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
+
+    if (!selectedFlight) {
+      const errorMsg = "Flight information is missing. Please select a flight and try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      navigate("/flights");
+      return;
+    }
+
     setLoading(true);
-    setError(null);
+    const loadingToast = toast.loading("Verifying payment and creating booking...");
 
     try {
+      // Verify the payment with Paystack with timeout
+      const token = await currentUser.getIdToken();
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      let verificationResponse;
+      try {
+        verificationResponse = await fetch(`/api/payments/verify/${paystackResponse.reference}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('Payment verification timed out. Please check your internet connection and try again.');
+        }
+        throw new Error('Failed to connect to payment server. Please check your internet connection.');
+      }
+
+      if (!verificationResponse.ok) {
+        const errorText = await verificationResponse.text();
+        throw new Error(`Payment verification failed (${verificationResponse.status}): ${errorText}`);
+      }
+
+      const verificationData = await verificationResponse.json();
+
+      if (!verificationData.success || verificationData.data?.status !== 'success') {
+        throw new Error('Payment verification failed. Your payment may not have been processed. Please contact support with reference: ' + paystackResponse.reference);
+      }
+
+      // Calculate total price including seat fees
+      const seatFees = selectedSeats.reduce((sum, seat) => sum + (seat.price || 0), 0);
+      const totalPrice = selectedFlight.price + seatFees;
+
+      // Create the booking record
       const newBooking: Booking = {
         id: "", // Firestore will generate this
         userId: currentUser.uid,
@@ -93,39 +179,52 @@ const BookingPage: React.FC = () => {
           email: formData.email,
           phone: formData.phone,
         },
+        selectedSeats: selectedSeats.map(seat => seat.id),
+        seatDetails: selectedSeats,
         bookingDate: new Date().toISOString(),
         status: "confirmed",
-        totalPrice: selectedFlight.price,
-        currency: selectedFlight.currency,
+        totalPrice,
+        currency: selectedFlight.currency || "GHS",
+        paymentId: paystackResponse.reference,
+        paymentStatus: "paid",
       };
 
-      const docRef = await addDoc(collection(db, "bookings"), newBooking);
-      console.log("Booking created with ID: ", docRef.id);
-      setLoading(false);
-      navigate("/confirmation"); // Navigate to a confirmation page
-    } catch (err: unknown) {
-      setLoading(false);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred during booking.");
+      try {
+        const docRef = await addDoc(collection(db, "bookings"), newBooking);
+        console.log("Booking created with ID: ", docRef.id);
+
+        // Update the booking with the Firestore ID
+        await updateDoc(doc(db, "bookings", docRef.id), {
+          id: docRef.id,
+        });
+
+        toast.success("Booking confirmed successfully!", { id: loadingToast });
+        navigate("/confirmation"); // Navigate to a confirmation page
+      } catch (firestoreError) {
+        console.error("Error saving booking to Firestore:", firestoreError);
+        throw new Error('Payment successful but booking creation failed. Please contact support with reference: ' + paystackResponse.reference);
       }
+    } catch (err: unknown) {
+      let errorMessage = "An unexpected error occurred while saving your booking.";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      toast.error(errorMessage, { id: loadingToast, duration: 6000 });
       console.error("Error saving booking:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!selectedFlight) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Loading flight details...</h1>
-        <p>If this takes too long, please return to flight search.</p>
-        <button onClick={() => navigate("/flights")} className="mt-4 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition">
-          Go to Flight Search
-        </button>
-      </div>
-    );
-  }
+  const handlePaymentError = (errorMessage: string) => {
+    setError(errorMessage);
+    toast.error(errorMessage);
+  };
 
+  // Flight is guaranteed to be available here due to early return above
   return (
     <div className="container mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-8">
@@ -140,36 +239,35 @@ const BookingPage: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 dark:text-gray-300">
             <p>
-              <span className="font-semibold">Flight:</span>{" "}
-              {selectedFlight.airline.name} ({selectedFlight.flightNumber})
+              <span className="font-semibold">Airline:</span>{" "}
+              {selectedFlight?.airline || 'N/A'} {selectedFlight?.airlineCode ? `(${selectedFlight.airlineCode})` : ''}
             </p>
             <p>
               <span className="font-semibold">Route:</span>{" "}
-              {selectedFlight.departureAirport.city} ({selectedFlight.departureAirport.code}) to{" "}
-              {selectedFlight.arrivalAirport.city} ({selectedFlight.arrivalAirport.code})
+              {selectedFlight?.departureAirport || 'N/A'} to {selectedFlight?.arrivalAirport || 'N/A'}
             </p>
             <p>
               <span className="font-semibold">Departure:</span>{" "}
-              {selectedFlight.departureDate}, {selectedFlight.departureTime}
+              {selectedFlight?.departureTime || 'N/A'}
             </p>
             <p>
               <span className="font-semibold">Arrival:</span>{" "}
-              {selectedFlight.arrivalDate}, {selectedFlight.arrivalTime}
+              {selectedFlight?.arrivalTime || 'N/A'}
             </p>
             <p>
               <span className="font-semibold">Duration:</span>{" "}
-              {selectedFlight.duration}
+              {selectedFlight?.duration ? `${Math.floor(selectedFlight.duration / 60)}h ${selectedFlight.duration % 60}m` : 'N/A'}
             </p>
             <p>
               <span className="font-semibold">Stops:</span>{" "}
-              {selectedFlight.stops === 0 ? "Nonstop" : `${selectedFlight.stops} Stop(s)`}
+              {selectedFlight?.stops === 0 ? "Nonstop" : selectedFlight?.stops ? `${selectedFlight.stops} Stop(s)` : 'N/A'}
             </p>
             <p>
               <span className="font-semibold">Cabin Class:</span>{" "}
-              {selectedFlight.cabinClass}
+              {selectedFlight?.cabinClass || 'Economy'}
             </p>
             <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
-              Total Price: {selectedFlight.currency} {selectedFlight.price.toLocaleString()}
+              Total Price: {selectedFlight?.currency === 'GHS' ? '₵' : selectedFlight?.currency === 'NGN' ? '₦' : '$'} {selectedFlight?.price?.toLocaleString() || '0'}
             </p>
           </div>
         </div>
@@ -184,8 +282,8 @@ const BookingPage: React.FC = () => {
             >
               1
             </span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              Passenger Details
+            <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+              Passenger
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -196,8 +294,8 @@ const BookingPage: React.FC = () => {
             >
               2
             </span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              Payment
+            <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+              Seats
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -208,8 +306,8 @@ const BookingPage: React.FC = () => {
             >
               3
             </span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              Confirmation
+            <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+              Payment
             </span>
           </div>
         </div>
@@ -221,7 +319,7 @@ const BookingPage: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <div>
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -300,106 +398,50 @@ const BookingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 2 && selectedFlight && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Seat className="w-6 h-6" /> Select Your Seats
+              </h2>
+              <SeatSelection
+                flightId={selectedFlight?.id || ''}
+                cabinClass={
+                  selectedFlight?.cabinClass === "Economy" ? "ECONOMY" :
+                  selectedFlight?.cabinClass === "Business" ? "BUSINESS" :
+                  "FIRST"
+                }
+                passengers={1} // Could be dynamic based on passenger count
+                onSeatsSelected={handleSeatsSelected}
+              />
+            </div>
+          )}
+
+          {step === 3 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <CreditCard className="w-6 h-6" /> Payment Information
               </h2>
-              <div>
-                <label
-                  htmlFor="paymentMethod"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Payment Method
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {paymentMethods.map((method) => (
-                    <div
-                      key={method.id}
-                      className={`flex items-center px-4 py-2 border rounded-lg cursor-pointer ${
-                        formData.paymentMethod === method.id
-                          ? "border-cyan-500 ring-2 ring-cyan-500"
-                          : "border-gray-300 hover:border-cyan-500"
-                      }`}
-                      onClick={() =>
-                        setFormData({ ...formData, paymentMethod: method.id })
-                      }
-                    >
-                      <img
-                        src={method.logo}
-                        alt={method.name}
-                        className="h-8 object-contain mr-2"
-                      />
-                      <span className="text-gray-900 dark:text-white">
-                        {method.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {formData.paymentMethod && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="cardNumber"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Card Number
-                    </label>
-                    <input
-                      type="text"
-                      id="cardNumber"
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleChange}
-                      required={formData.paymentMethod !== "mtn_momo"}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="expiryDate"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      Expiry Date (MM/YY)
-                    </label>
-                    <input
-                      type="text"
-                      id="expiryDate"
-                      name="expiryDate"
-                      value={formData.expiryDate}
-                      onChange={handleChange}
-                      required={formData.paymentMethod !== "mtn_momo"}
-                      placeholder="MM/YY"
-                      maxLength={5}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="cvc"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >
-                      CVC
-                    </label>
-                    <input
-                      type="text"
-                      id="cvc"
-                      name="cvc"
-                      value={formData.cvc}
-                      onChange={handleChange}
-                      required={formData.paymentMethod !== "mtn_momo"}
-                      maxLength={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                </div>
+
+              {selectedFlight && currentUser && (
+                <PaystackProvider>
+                  <PaymentForm
+                    amount={(selectedFlight?.price || 0) + selectedSeats.reduce((sum, seat) => sum + (seat.price || 0), 0)}
+                    currency={selectedFlight?.currency || "GHS"}
+                    email={formData.email}
+                    bookingId={`booking-${Date.now()}`}
+                    passengerName={`${formData.firstName} ${formData.lastName}`}
+                    onPaymentSuccess={handlePaymentSuccess}
+                    onPaymentError={handlePaymentError}
+                    isProcessing={loading}
+                    setIsProcessing={setLoading}
+                  />
+                </PaystackProvider>
               )}
             </div>
           )}
 
           <div className="flex justify-between mt-8">
-            {step > 1 && (
+            {step > 1 && step < 3 && (
               <button
                 type="button"
                 onClick={handlePrevStep}
@@ -409,7 +451,7 @@ const BookingPage: React.FC = () => {
               </button>
             )}
 
-            {step < 2 && (
+            {step === 1 && (
               <button
                 type="button"
                 onClick={handleNextStep}
@@ -419,18 +461,10 @@ const BookingPage: React.FC = () => {
               </button>
             )}
 
-            {step === 2 && (
-              <button
-                type="submit"
-                className="ml-auto flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                disabled={loading}
-              >
-                {loading ? "Booking..." : "Book Now"}{" "}
-                <Plane className="w-5 h-5" />
-              </button>
-            )}
+            {/* Note: Step 2 (seat selection) uses its own confirm button */}
+            {/* Step 3 (payment) uses the payment form's own submit */}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

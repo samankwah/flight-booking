@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { FlightResult } from "../types";
 
 import { useFilterStore } from "../store/filterStore";
+import PriceAlertButton from "./PriceAlertButton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -18,6 +20,30 @@ export default function FlightResults({
 }: Props) {
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
   const { filters } = useFilterStore();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const safeFlights = Array.isArray(flights) ? flights : [];
+
+  // Handle flight selection and navigation to booking page
+  const handleSelectFlight = (flight: FlightResult) => {
+    // Navigate to booking page with flight data in state
+    navigate("/booking", {
+      state: { flight }
+    });
+  };
+
+  // Get currency symbol based on currency code
+  const getCurrencySymbol = (currencyCode?: string): string => {
+    const code = currencyCode?.toUpperCase() || 'GHS';
+    const symbols: Record<string, string> = {
+      'GHS': '₵',
+      'NGN': '₦',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+    };
+    return symbols[code] || '$';
+  };
 
   const getAirlineCode = (name: string) => {
     const map: Record<string, string> = {
@@ -77,7 +103,8 @@ export default function FlightResults({
 
   // Filtering Logic
   const filteredFlights = useMemo(() => {
-    return flights.filter((flight) => {
+    return safeFlights.filter((flight) => {
+      // Changed from 'flights' to 'safeFlights'
       // Price range filter
       if (filters.priceRange) {
         if (
@@ -125,7 +152,7 @@ export default function FlightResults({
 
       return true;
     });
-  }, [flights, filters]);
+  }, [safeFlights, filters]);
 
   // Sorting Logic
   const sortedFlights = useMemo(() => {
@@ -181,7 +208,7 @@ export default function FlightResults({
     );
   }
 
-  if (flights.length === 0) {
+  if (safeFlights.length === 0 && !loading) {
     return (
       <div className="text-center py-12 sm:py-20 bg-white rounded-xl sm:rounded-2xl shadow mx-2 sm:mx-0">
         <p className="text-lg sm:text-xl text-gray-600 px-4">
@@ -216,7 +243,7 @@ export default function FlightResults({
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-extrabold text-blue-600">
-                    ${Math.round(flight.price)}
+                    {getCurrencySymbol(flight.currency)}{Math.round(flight.price)}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Per adult</p>
                 </div>
@@ -260,10 +287,30 @@ export default function FlightResults({
                   : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
               </div>
 
-              {/* Select Button */}
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg">
-                Select Flight
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleSelectFlight(flight)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
+                >
+                  Select Flight
+                </button>
+                <PriceAlertButton
+                  flightRoute={{
+                    from: searchParams.get("from") || flight.departureAirport,
+                    to: searchParams.get("to") || flight.arrivalAirport,
+                    departureDate: searchParams.get("departureDate") || "",
+                    returnDate: searchParams.get("returnDate") || undefined,
+                  }}
+                  currentPrice={flight.price}
+                  travelClass={flight.cabinClass || searchParams.get("travelClass") || "ECONOMY"}
+                  passengers={{
+                    adults: parseInt(searchParams.get("adults") || "1"),
+                    children: parseInt(searchParams.get("children") || "0") || undefined,
+                    infants: parseInt(searchParams.get("infants") || "0") || undefined,
+                  }}
+                />
+              </div>
 
               {/* Tags */}
               <div className="flex gap-2 pt-3 border-t">
@@ -336,11 +383,31 @@ export default function FlightResults({
               {/* Price */}
               <div className="md:col-span-3 text-right">
                 <div className="text-3xl lg:text-4xl font-extrabold text-blue-600">
-                  ${Math.round(flight.price)}
+                  {getCurrencySymbol(flight.currency)}{Math.round(flight.price)}
                 </div>
-                <button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 lg:px-8 rounded-xl transition-all shadow-md hover:shadow-lg w-full lg:w-auto">
-                  Select Flight
-                </button>
+                <div className="mt-4 flex flex-col gap-2">
+                  <button
+                    onClick={() => handleSelectFlight(flight)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 lg:px-8 rounded-xl transition-all shadow-md hover:shadow-lg w-full lg:w-auto"
+                  >
+                    Select Flight
+                  </button>
+                  <PriceAlertButton
+                    flightRoute={{
+                      from: searchParams.get("from") || flight.departureAirport,
+                      to: searchParams.get("to") || flight.arrivalAirport,
+                      departureDate: searchParams.get("departureDate") || "",
+                      returnDate: searchParams.get("returnDate") || undefined,
+                    }}
+                    currentPrice={flight.price}
+                    travelClass={flight.cabinClass || searchParams.get("travelClass") || "ECONOMY"}
+                    passengers={{
+                      adults: parseInt(searchParams.get("adults") || "1"),
+                      children: parseInt(searchParams.get("children") || "0") || undefined,
+                      infants: parseInt(searchParams.get("infants") || "0") || undefined,
+                    }}
+                  />
+                </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Per adult • Incl. taxes
                 </p>

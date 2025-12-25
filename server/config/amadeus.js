@@ -3,10 +3,17 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY,
-  clientSecret: process.env.AMADEUS_API_SECRET,
-  hostname: process.env.AMADEUS_HOSTNAME || "test",
-});
+let amadeusInstance = null;
 
-export default amadeus;
+const getAmadeusClient = () => {
+  if (!amadeusInstance) {
+    amadeusInstance = new Amadeus({
+      clientId: process.env.AMADEUS_API_KEY,
+      clientSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || "test",
+    });
+  }
+  return amadeusInstance;
+};
+
+export default getAmadeusClient;

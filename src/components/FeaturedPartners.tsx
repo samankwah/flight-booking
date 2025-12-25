@@ -31,6 +31,7 @@ const featuredAirlines = [
 
 const FeaturedPartners: React.FC = () => {
   const getAirlineLogoUrl = (iataCode: string): string => {
+    // Primary source - Duffel has reliable SVG logos
     return `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iataCode}.svg`;
   };
 
@@ -59,20 +60,22 @@ const FeaturedPartners: React.FC = () => {
   ) => {
     const img = e.currentTarget;
 
+    // Track which fallback we're on using a data attribute
+    const attemptedFallbacks = img.dataset.attempted ? parseInt(img.dataset.attempted) : 0;
+
     const fallbacks = [
-      `https://images.kiwi.com/airlines/64/${iataCode}.png`,
-      `https://pics.avs.io/200/100/${iataCode}.png`,
-      `https://content.airhex.com/content/logos/airlines_${iataCode}_200_200_s.png`,
-      getPlaceholderSvg(iataCode, airlineName),
+      `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iataCode}.svg`, // Primary (already loaded)
+      `https://content.airhex.com/content/logos/airlines_${iataCode}_200_200_s.png`, // Airhex
+      `https://images.kiwi.com/airlines/64x64/${iataCode}.png`, // Kiwi.com
+      `https://pics.avs.io/200/100/${iataCode}.png`, // AVS
+      getPlaceholderSvg(iataCode, airlineName), // Final fallback
     ];
 
-    const currentSrc = img.src;
-    const currentIndex = fallbacks.findIndex((url) =>
-      currentSrc.includes(url.split("?")[0])
-    );
+    const nextIndex = attemptedFallbacks + 1;
 
-    if (currentIndex < fallbacks.length - 1) {
-      img.src = fallbacks[currentIndex + 1];
+    if (nextIndex < fallbacks.length) {
+      img.dataset.attempted = nextIndex.toString();
+      img.src = fallbacks[nextIndex];
     }
   };
 
@@ -101,17 +104,19 @@ const FeaturedPartners: React.FC = () => {
         >
           {featuredAirlines.map((airline) => (
             <SwiperSlide key={airline.iataCode} className="flex justify-center">
-              <div className="flex items-center justify-center h-24 w-full px-4">
-                <img
-                  src={getAirlineLogoUrl(airline.iataCode)}
-                  alt={airline.name}
-                  className="h-14 md:h-16 max-w-full object-contain transition-transform duration-300 hover:scale-105 cursor-pointer"
-                  onError={(e) =>
-                    handleImageError(e, airline.iataCode, airline.name)
-                  }
-                  loading="lazy"
-                  title={airline.name}
-                />
+              <div className="flex items-center justify-center h-24 w-full px-2">
+                <div className="rounded-lg p-1 transition-shadow duration-300 w-full h-20 flex items-center justify-center">
+                  <img
+                    src={getAirlineLogoUrl(airline.iataCode)}
+                    alt={airline.name}
+                    className="max-h-20 max-w-full object-contain transition-transform duration-300 hover:scale-105 cursor-pointer"
+                    onError={(e) =>
+                      handleImageError(e, airline.iataCode, airline.name)
+                    }
+                    loading="lazy"
+                    title={airline.name}
+                  />
+                </div>
               </div>
             </SwiperSlide>
           ))}

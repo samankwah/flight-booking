@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/f
 import type { Booking } from "../types";
 import { MdPerson as User, MdEmail as Mail, MdEdit as Edit, MdSave as Save } from "react-icons/md"; // Removed Plane, Calendar, Phone
 import { updateProfile } from "firebase/auth"; // Import updateProfile
+import NotificationPreferences from "../components/NotificationPreferences";
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -227,6 +228,11 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Notification Preferences Section */}
+      <div className="mt-8">
+        <NotificationPreferences userId={currentUser?.uid} />
       </div>
     </div>
   );

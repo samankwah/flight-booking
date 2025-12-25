@@ -11,7 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Environment variables - NEVER commit these!
 .env
+.env.local
+.env.development
+.env.production
+server/.env
+server/.env.local
+server/.env.development
+server/.env.production
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

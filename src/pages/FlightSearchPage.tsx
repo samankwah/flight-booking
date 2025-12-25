@@ -1,12 +1,13 @@
 // src/pages/FlightSearchPage.tsx
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { searchFlights } from "../services/amadeusService";
+import toast from "react-hot-toast";
+import { searchFlights } from "../services/flightApi";
 import FlightResults from "../components/FlightResults";
 import Sidebar from "../components/Sidebar";
 import MobileSidebar from "../components/MobileSidebar";
 import LoadingWrapper from "../components/LoadingWrapper";
-import { FlightResult } from "../types";
+import { FlightResult, MultiCitySegment } from "../types";
 
 export default function FlightSearchPage() {
   const [searchParams] = useSearchParams();
@@ -21,27 +22,74 @@ export default function FlightSearchPage() {
     const fetch = async () => {
       setLoading(true);
       setError(null);
+
+      const loadingToast = toast.loading("Searching for flights...");
+
       try {
-        const results = await searchFlights({
-          from: searchParams.get("from")!,
-          to: searchParams.get("to")!,
-          departureDate: searchParams.get("departureDate")!,
-          adults: parseInt(searchParams.get("adults") || "1"),
-          returnDate: searchParams.get("returnDate") || undefined,
-          children: parseInt(searchParams.get("children") || "0") || undefined,
-          infants: parseInt(searchParams.get("infants") || "0") || undefined,
-          cabinClass: searchParams.get("travelClass") || "ECONOMY",
-        });
-        setFlights(results);
+        const tripType = searchParams.get("tripType");
+
+        // Handle multi-city search
+        if (tripType === "multiCity") {
+          const segmentsParam = searchParams.get("segments");
+          if (!segmentsParam) {
+            throw new Error("Multi-city segments are required. Please go back and search for flights.");
+          }
+
+          const segments = JSON.parse(segmentsParam);
+          const results = await searchFlights({
+            segments,
+            adults: parseInt(searchParams.get("adults") || "1"),
+            children: parseInt(searchParams.get("children") || "0") || undefined,
+            infants: parseInt(searchParams.get("infants") || "0") || undefined,
+            travelClass: searchParams.get("travelClass") || "ECONOMY",
+          });
+          setFlights(results);
+
+          if (results.length === 0) {
+            toast.info("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000 });
+          } else {
+            toast.success(`Found ${results.length} flights!`, { id: loadingToast });
+          }
+        } else {
+          // Handle one-way and round-trip search
+          const results = await searchFlights({
+            origin: searchParams.get("from")!,
+            destination: searchParams.get("to")!,
+            departureDate: searchParams.get("departureDate")!,
+            adults: parseInt(searchParams.get("adults") || "1"),
+            returnDate: searchParams.get("returnDate") || undefined,
+            children: parseInt(searchParams.get("children") || "0") || undefined,
+            infants: parseInt(searchParams.get("infants") || "0") || undefined,
+            travelClass: searchParams.get("travelClass") || "ECONOMY",
+          });
+          setFlights(results);
+
+          if (results.length === 0) {
+            toast.info("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000 });
+          } else {
+            toast.success(`Found ${results.length} flights!`, { id: loadingToast });
+          }
+        }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load flights");
+        const errorMessage = err instanceof Error ? err.message : "Failed to load flights. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage, { id: loadingToast, duration: 6000 });
       } finally {
         setLoading(false);
       }
     };
 
+    const tripType = searchParams.get("tripType");
+
     // Only fetch if we have the required parameters
-    if (
+    if (tripType === "multiCity") {
+      if (searchParams.get("segments")) {
+        fetch();
+      } else {
+        setLoading(false);
+        setError("Missing multi-city segments. Please go back and search for flights.");
+      }
+    } else if (
       searchParams.get("from") &&
       searchParams.get("to") &&
       searchParams.get("departureDate")
@@ -71,30 +119,43 @@ export default function FlightSearchPage() {
     return m === 0 ? `${h}h` : `${h}h ${m}m`;
   };
 
+  const tripType = searchParams.get("tripType");
   const from = searchParams.get("from") || "LHR";
   const to = searchParams.get("to") || "JFK";
+
+  // Parse multi-city segments for header display
+  let multiCityRoute = "";
+  if (tripType === "multiCity" && searchParams.get("segments")) {
+    try {
+      const segments: MultiCitySegment[] = JSON.parse(searchParams.get("segments")!);
+      multiCityRoute = segments.map((seg: MultiCitySegment) => seg.from?.code).join(" → ");
+      multiCityRoute += ` → ${segments[segments.length - 1].to?.code}`;
+    } catch (e) {
+      multiCityRoute = "Multi-City";
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header + Tabs + Modify Search - ALL ON THE SAME LINE */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 lg:px-60">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-2 gap-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-3 gap-4">
             {/* Route + Date */}
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {from} to {to}
+                {tripType === "multiCity" ? multiCityRoute : `${from} to ${to}`}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {searchParams.get("departureDate")} •{" "}
-                {searchParams.get("adults")} adult(s) • Economy
+                {tripType === "multiCity" ? "Multi-City" : searchParams.get("departureDate")} •{" "}
+                {searchParams.get("adults")} adult(s) • {searchParams.get("travelClass") || "Economy"}
               </p>
             </div>
 
             {/* TABS + MODIFY SEARCH - SAME LINE, RIGHT-ALIGNED */}
-            <div className="flex items-center gap-8">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-8">
               {/* Kayak Tabs - now perfectly inline */}
-              <div className="flex bg-gray-100 rounded-lg p-1 shadow-sm">
+              <div className="flex bg-gray-100 rounded-lg p-1 shadow-sm overflow-x-auto">
                 {[
                   {
                     key: "cheapest",
@@ -121,7 +182,7 @@ export default function FlightSearchPage() {
                     onClick={() =>
                       setSortBy(tab.key as "best" | "cheapest" | "fastest")
                     }
-                    className={`flex flex-col px-2 py-2 rounded-md transition-all font-medium text-sm ${
+                    className={`flex flex-col px-3 py-2 rounded-md transition-all font-medium text-xs sm:text-sm whitespace-nowrap ${
                       sortBy === tab.key
                         ? "bg-white text-blue-700 shadow-sm"
                         : "text-gray-600 hover:text-gray-900"
@@ -185,8 +246,8 @@ export default function FlightSearchPage() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex gap-6 lg:gap-8">
           <aside className="w-80 hidden lg:block sticky top-32 self-start">
             <Sidebar />
           </aside>

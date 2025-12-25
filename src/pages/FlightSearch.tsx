@@ -33,7 +33,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { searchFlights } from "../services/amadeusService";
+import { searchFlights } from "../services/flightApi";
 import { useFilterStore } from "../store/filterStore";
 import { useFilterSync } from "../hooks/useFilterSync";
 import { FlightResult } from "../types";

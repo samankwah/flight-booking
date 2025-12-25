@@ -84,91 +84,91 @@ export const airlines: Airline[] = [
     id: "1",
     name: "Emirates",
     code: "EK",
-    logo: "https://www.airhex.com/images/airlines/small/EK.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/EK.svg"
   },
   {
     id: "2",
     name: "Qatar Airways",
     code: "QR",
-    logo: "https://www.airhex.com/images/airlines/small/QR.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/QR.svg"
   },
   {
     id: "3",
     name: "Turkish Airlines",
     code: "TK",
-    logo: "https://www.airhex.com/images/airlines/small/TK.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/TK.svg"
   },
   {
     id: "4",
     name: "Lufthansa",
     code: "LH",
-    logo: "https://www.airhex.com/images/airlines/small/LH.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/LH.svg"
   },
   {
     id: "5",
     name: "British Airways",
     code: "BA",
-    logo: "https://www.airhex.com/images/airlines/small/BA.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/BA.svg"
   },
   {
     id: "6",
     name: "KLM Royal Dutch Airlines",
     code: "KL",
-    logo: "https://www.airhex.com/images/airlines/small/KL.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/KL.svg"
   },
   {
     id: "7",
     name: "Air France",
     code: "AF",
-    logo: "https://www.airhex.com/images/airlines/small/AF.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AF.svg"
   },
   {
     id: "8",
     name: "Delta Air Lines",
     code: "DL",
-    logo: "https://www.airhex.com/images/airlines/small/DL.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/DL.svg"
   },
   {
     id: "9",
     name: "American Airlines",
     code: "AA",
-    logo: "https://www.airhex.com/images/airlines/small/AA.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AA.svg"
   },
   {
     id: "10",
     name: "United Airlines",
     code: "UA",
-    logo: "https://www.airhex.com/images/airlines/small/UA.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/UA.svg"
   },
   {
     id: "11",
     name: "Air Canada",
     code: "AC",
-    logo: "https://www.airhex.com/images/airlines/small/AC.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AC.svg"
   },
   {
     id: "12",
     name: "Pakistan International Airlines",
     code: "PK",
-    logo: "https://www.airhex.com/images/airlines/small/PK.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/PK.svg"
   },
   {
     id: "13",
     name: "flydubai",
     code: "FZ",
-    logo: "https://www.airhex.com/images/airlines/small/FZ.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/FZ.svg"
   },
   {
     id: "14",
     name: "Air Arabia",
     code: "G9",
-    logo: "https://www.airhex.com/images/airlines/small/G9.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/G9.svg"
   },
   {
     id: "15",
     name: "airblue",
     code: "PA",
-    logo: "https://www.airhex.com/images/airlines/small/PA.png"
+    logo: "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/PA.svg"
   },
   {
     id: "16",

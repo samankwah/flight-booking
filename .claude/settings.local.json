@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nul)",
+      "Bash(findstr:*)",
+      "Bash(npm start)",
+      "Bash(timeout /t 10)",
+      "Bash(node server.js:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm ls:*)",
+      "Bash(if exist \"node_modules\\\\.vite\" rmdir /s /q \"node_modules\\\\.vite\")",
+      "Bash(dir /b:*)",
+      "Bash(del package-lock.json)",
+      "Bash(npm cache clean:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"✅ .env file exists\")",
+      "Bash(else echo \"❌ .env file not found - you need to create it from env.example\")",
+      "Bash(fi)",
+      "Bash(echo:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(echo.)",
+      "Bash(rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

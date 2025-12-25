@@ -1,7 +1,7 @@
 // src/pages/FlightSearchPage.tsx
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { searchFlights } from "../services/amadeusService";
+import { searchFlights } from "../services/flightApi";
 import FlightResults from "../components/FlightResults";
 import Sidebar from "../components/Sidebar";
 import LoadingWrapper from "../components/LoadingWrapper";
