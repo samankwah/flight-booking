@@ -11,6 +11,8 @@ import PaystackProvider from "../components/PaystackProvider.tsx";
 import PaymentForm from "../components/PaymentForm";
 import SeatSelection, { Seat as SeatType } from "../components/SeatSelection";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 // Mock data for payment methods (moved to be accessible)
 const paymentMethods = [
   { id: "visa", name: "Visa", logo: "/assets/visa.png" },
@@ -136,7 +138,7 @@ const BookingPage: React.FC = () => {
 
       let verificationResponse;
       try {
-        verificationResponse = await fetch(`/api/payments/verify/${paystackResponse.reference}`, {
+        verificationResponse = await fetch(`${API_BASE_URL}/payments/verify/${paystackResponse.reference}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

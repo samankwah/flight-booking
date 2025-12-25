@@ -10,6 +10,8 @@ import {
   NotificationPreferences as INotificationPreferences,
 } from '../utils/notifications';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 interface NotificationPreferencesProps {
   userId?: string;
 }
@@ -48,7 +50,7 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({ userI
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/notifications/preferences', {
+      const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -80,7 +82,7 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({ userI
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/notifications/preferences', {
+      const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

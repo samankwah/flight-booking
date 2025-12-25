@@ -5,6 +5,8 @@
  * Handles browser push notifications and Firebase Cloud Messaging
  */
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 /**
  * Check if notifications are supported
  */
@@ -158,7 +160,7 @@ export const saveSubscriptionToBackend = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    const response = await fetch('/api/notifications/subscribe', {
+    const response = await fetch(`${API_BASE_URL}/notifications/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
