@@ -19,6 +19,13 @@ export interface FlightSearch {
   cabinClass: "economy" | "business" | "firstClass";
 }
 
+export interface MultiCitySegment {
+  id: string;
+  from: Airport | null;
+  to: Airport | null;
+  departureDate: string;
+}
+
 export interface PassengerInfo {
   adults: number;
   children: number;
@@ -97,10 +104,19 @@ export interface Booking {
     email: string;
     phone: string;
   };
+  selectedSeats?: string[]; // Array of seat IDs like ["12A", "12B"]
+  seatDetails?: Array<{
+    id: string;
+    row: number;
+    column: string;
+    price?: number;
+  }>;
   bookingDate: string; // ISO date string
   status: "confirmed" | "pending" | "cancelled";
   totalPrice: number;
   currency: string;
+  paymentId?: string;
+  paymentStatus?: "paid" | "pending" | "failed";
 }
 
 // Add this to your existing types.ts file or update your FlightResult interface
@@ -116,12 +132,15 @@ export interface FlightResult {
   duration: number; // in minutes
   stops: number;
   price: number;
+  currency?: string; // Currency code (e.g., "USD", "GHS", "EUR")
   cabinClass?: string;
   alliance?: string;
   returnDepartureTime?: string;
   returnArrivalTime?: string;
   returnDuration?: number;
   returnStops?: number;
+  itineraries?: any[]; // For multi-city flights
+  isMultiCity?: boolean; // Flag to indicate multi-city flight
 }
 
 // Hotel-related types
@@ -371,3 +390,57 @@ export interface HolidayPackageSearchParams {
   hotelRating?: number;
   packageType?: "budget" | "standard" | "luxury";
 }
+
+// Passenger details interface
+export interface PassengerDetails {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth?: string;
+  passportNumber?: string;
+  nationality?: string;
+  passengerType: "adult" | "child" | "infant";
+}
+
+// Payment information interface
+export interface PaymentInfo {
+  method: "paystack" | "card";
+  amount: number;
+  currency: string;
+  status: "pending" | "completed" | "failed";
+  transactionId?: string;
+  reference?: string;
+  paidAt?: string;
+  cardLast4?: string;
+  cardBrand?: string;
+}
+
+// Seat details interface
+export interface SeatDetails {
+  id: string;
+  row: number;
+  column: string;
+  price?: number;
+  type?: "economy" | "business" | "first";
+  position?: "window" | "middle" | "aisle";
+  available?: boolean;
+}
+
+// Flight search parameters union type
+export type FlightSearchParams = {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate?: string;
+  adults: number;
+  children?: number;
+  infants?: number;
+  travelClass?: string;
+} | {
+  segments: MultiCitySegment[];
+  adults: number;
+  children?: number;
+  infants?: number;
+  travelClass?: string;
+};

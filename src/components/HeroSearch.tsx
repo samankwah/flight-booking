@@ -1,6 +1,7 @@
 // src/components/HeroSearch.tsx
 
 import React, { useState, useRef, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   MdSearch as Search,
   MdFlight as Plane,
@@ -15,16 +16,9 @@ import {
 } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { airports } from "../data/mockData";
-import type { Airport } from "../types";
-import {
-  searchFlights,
-  searchAirports,
-  getNearbyAirports,
-  AirportSearchResult,
-  NearbyAirportResult,
-  searchHotels,
-  HotelSearchResult,
-} from "../services/amadeusService";
+import type { Airport, MultiCitySegment } from "../types";
+import { searchAirports } from "../services/flightApi";
+import MultiCityFlightForm from "./MultiCityFlightForm";
 
 interface SearchFormData {
   from: Airport | null;
@@ -58,6 +52,9 @@ const HeroSearch: React.FC = () => {
   const [cabinClass, setCabinClass] = useState<
     "economy" | "business" | "firstClass"
   >("economy");
+
+  // Multi-city segments state
+  const [multiCitySegments, setMultiCitySegments] = useState<MultiCitySegment[]>([]);
 
   // Set default dates for hotel check-in (tomorrow) and check-out (day after tomorrow)
   const tomorrow = new Date();
@@ -288,7 +285,7 @@ const HeroSearch: React.FC = () => {
 
   // Debounced search functions for airports
   const searchFromAirports = async (keyword: string) => {
-    if (keyword.length < 1) {
+    if (keyword.length < 2) {
       setFromAirports([]);
       return;
     }
@@ -306,7 +303,7 @@ const HeroSearch: React.FC = () => {
   };
 
   const searchToAirports = async (keyword: string) => {
-    if (keyword.length < 1) {
+    if (keyword.length < 2) {
       setToAirports([]);
       return;
     }
@@ -444,12 +441,49 @@ const HeroSearch: React.FC = () => {
 
     if (activeTab === "flight") {
       console.log("✈️ Flight search - checking required fields");
+
+      // Handle multi-city search
+      if (tripType === "multiCity") {
+        // Validate all segments
+        const invalidSegment = multiCitySegments.find(
+          (seg) => !seg.from?.code || !seg.to?.code || !seg.departureDate
+        );
+
+        if (invalidSegment || multiCitySegments.length < 2) {
+          toast.error("Please complete all flight segments with airports and dates");
+          return;
+        }
+
+        // Navigate with multi-city data
+        const params = new URLSearchParams();
+        params.append("tripType", "multiCity");
+        params.append("segments", JSON.stringify(multiCitySegments));
+        params.append("adults", formData.passengers.adults.toString());
+        if (formData.passengers.children)
+          params.append("children", formData.passengers.children.toString());
+        if (formData.passengers.infants)
+          params.append("infants", formData.passengers.infants.toString());
+
+        const travelClass =
+          cabinClass === "economy"
+            ? "ECONOMY"
+            : cabinClass === "business"
+            ? "BUSINESS"
+            : "FIRST";
+        params.append("travelClass", travelClass);
+
+        console.log("✈️ Multi-city search params:", params.toString());
+        navigate(`/flights?${params.toString()}`);
+        return;
+      }
+
+      // Handle one-way and return flights
       if (
         !formData.from?.code ||
         !formData.to?.code ||
         !formData.departureDate
       ) {
-        alert(
+        toast.error(
           "Please select departure airport, destination, and departure date"
         );
         return;
@@ -491,7 +525,7 @@ const HeroSearch: React.FC = () => {
         !formData.checkInDate ||
         !formData.checkOutDate
       ) {
-        alert("Please select destination, check-in and check-out dates");
+        toast.error("Please select destination, check-in and check-out dates");
         return;
       }
 
@@ -518,7 +552,7 @@ const HeroSearch: React.FC = () => {
         !formData.packageStartDate ||
         !formData.duration
       ) {
-        alert("Please select destination, departure date, and duration");
+        toast.error("Please select destination, departure date, and duration");
         return;
       }
 
@@ -558,7 +592,7 @@ const HeroSearch: React.FC = () => {
     } else if (activeTab === "visa") {
       console.log("🛂 Visa search - checking required fields");
       if (!formData.visaCountry || !formData.nationality) {
-        alert("Please select destination country and your nationality");
+        toast.error("Please select destination country and your nationality");
         return;
       }
 
@@ -579,7 +613,7 @@ const HeroSearch: React.FC = () => {
       navigate(`/visa/results?${params.toString()}`);
     } else {
       console.error("❌ Unknown tab:", activeTab);
-      alert("Unknown search type. Please try again.");
+      toast.error("Unknown search type. Please try again.");
     }
   };
   const today = new Date().toISOString().split("T")[0];
@@ -661,7 +695,7 @@ const HeroSearch: React.FC = () => {
     }
 
     return (
-      <div className="calendar-picker p-4 bg-white rounded-lg shadow-2xl border border-gray-200 w-80">
+      <div className="calendar-picker p-4 bg-white rounded-lg shadow-2xl border border-gray-200 w-[90vw] sm:w-80 max-w-sm">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() =>
@@ -756,6 +790,13 @@ const HeroSearch: React.FC = () => {
           {/* FLIGHT TAB */}
           {activeTab === "flight" && (
             <>
+              {tripType === "multiCity" ? (
+                <div className="mb-6">
+                  <MultiCityFlightForm
+                    onSegmentsChange={setMultiCitySegments}
+                  />
+                </div>
+              ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 relative">
                 {/* From */}
                 <div className="relative" ref={fromRef}>
@@ -790,7 +831,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {showFromDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-96 overflow-hidden">
+                    <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
                       <div className="p-3 border-b">
                         <input
                           type="text"
@@ -813,7 +854,7 @@ const HeroSearch: React.FC = () => {
                           <div className="p-3 text-center text-gray-500">
                             Start typing to search airports and cities...
                           </div>
-                        ) : fromAirports.length === 0 ? (
+                        ) : !Array.isArray(fromAirports) || fromAirports.length === 0 ? (
                           <div className="p-3 text-center text-gray-500">
                             No airports found
                           </div>
@@ -883,7 +924,7 @@ const HeroSearch: React.FC = () => {
                     <ArrowLeftRight className="w-4 h-4 text-gray-600 group-hover:text-cyan-600" />
                   </button>
                   {showToDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-96 overflow-hidden">
+                    <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
                       <div className="p-3 border-b">
                         <input
                           type="text"
@@ -904,7 +945,7 @@ const HeroSearch: React.FC = () => {
                           <div className="p-3 text-center text-gray-500">
                             Start typing to search airports and cities...
                           </div>
-                        ) : toAirports.length === 0 ? (
+                        ) : !Array.isArray(toAirports) || toAirports.length === 0 ? (
                           <div className="p-3 text-center text-gray-500">
                             No airports found
                           </div>
@@ -960,7 +1001,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {activeCalendar === "departure" && (
-                    <div className="absolute top-full left-0 mt-2 z-50">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                       <CalendarPicker
                         selectedDate={formData.departureDate}
                         onSelectDate={(date) =>
@@ -996,7 +1037,7 @@ const HeroSearch: React.FC = () => {
                       </div>
                     </div>
                     {activeCalendar === "return" && (
-                      <div className="absolute top-full left-0 mt-2 z-50">
+                      <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                         <CalendarPicker
                           selectedDate={formData.returnDate}
                           onSelectDate={(date) =>
@@ -1035,7 +1076,7 @@ const HeroSearch: React.FC = () => {
                       </div>
                     </div>
                     {showPassengerDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 p-4 min-w-[280px]">
+                      <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:right-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 p-4 w-[90vw] sm:w-auto sm:min-w-[280px] max-w-md">
                         <div className="space-y-4">
                           {[
                             {
@@ -1141,6 +1182,7 @@ const HeroSearch: React.FC = () => {
                   </div>
                 )}
               </div>
+              )}
 
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4 md:gap-6">
@@ -1255,7 +1297,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {activeCalendar === "visa" && (
-                    <div className="absolute top-full left-0 mt-2 z-50">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                       <CalendarPicker
                         selectedDate={formData.visaTravelDate}
                         onSelectDate={(date) =>
@@ -1301,8 +1343,7 @@ const HeroSearch: React.FC = () => {
                   />
                   {showHotelDropdown && (
                     <div
-                      className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 max-h-80 overflow-y-auto"
-                      style={{ zIndex: 9999 }}
+                      className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-1 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-80 overflow-y-auto"
                     >
                       {hotelLoading ? (
                         <div className="p-3 text-center text-gray-500">
@@ -1360,7 +1401,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {activeCalendar === "checkIn" && (
-                    <div className="absolute top-full left-0 mt-2 z-50">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                       <CalendarPicker
                         selectedDate={formData.checkInDate}
                         onSelectDate={(date) =>
@@ -1388,7 +1429,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {activeCalendar === "checkOut" && (
-                    <div className="absolute top-full left-0 mt-2 z-50">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                       <CalendarPicker
                         selectedDate={formData.checkOutDate}
                         onSelectDate={(date) =>
@@ -1418,7 +1459,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {showPassengerDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl z-50 border border-gray-200 p-4 min-w-[280px]">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:right-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 p-4 w-[90vw] sm:w-auto sm:min-w-[280px] max-w-md">
                       <div className="space-y-4">
                         {[
                           { type: "adults", label: "Adults" },
@@ -1578,7 +1619,7 @@ const HeroSearch: React.FC = () => {
                     </div>
                   </div>
                   {activeCalendar === "package" && (
-                    <div className="absolute top-full left-0 mt-2 z-50">
+                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
                       <CalendarPicker
                         selectedDate={formData.packageStartDate}
                         onSelectDate={(date) =>

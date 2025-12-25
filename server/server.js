@@ -67,31 +67,123 @@
 // });
 
 import dotenv from "dotenv";
+
+dotenv.config({ path: "./server/.env" });
+
 import express from "express";
 import cors from "cors";
+import cron from "node-cron";
 import flightRoutes from "./routes/flightRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import priceAlertRoutes from "./routes/priceAlertRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
-
-dotenv.config();
+import { generalLimiter } from "./middleware/rateLimiter.js";
+import { swaggerUi, specs } from "./swagger.js";
+import priceMonitoringService from "./services/priceMonitoringService.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+// CORS configuration - restrict to frontend domain
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Apply general rate limiting to all routes
+app.use("/api", generalLimiter);
+
+// Swagger documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(specs, {
+    explorer: true,
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+    },
+  })
+);
 
 // Routes
 app.use("/api/flights", flightRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/price-alerts", priceAlertRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// API documentation redirect
+app.get("/docs", (req, res) => {
+  res.redirect("/api-docs");
+});
+
 // Error handler (must be last)
 app.use(errorHandler);
 
+// Manual trigger endpoint for price alert checking (for testing)
+app.post("/api/price-alerts/check-now", async (req, res) => {
+  try {
+    await priceMonitoringService.checkAllAlerts();
+    res.json({
+      success: true,
+      message: "Price alerts checked successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Failed to check price alerts",
+      message: error.message,
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend server running on http://localhost:${PORT}`);
+  console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
+
+  // Start price monitoring service
+  // Run every hour
+  console.log("⏰ Setting up price monitoring cron job...");
+  cron.schedule('0 * * * *', async () => {
+    console.log('🔔 Running scheduled price alert check...');
+    await priceMonitoringService.checkAllAlerts();
+  });
+
+  // Also run immediately on startup
+  console.log("🏃 Running initial price alert check...");
+  priceMonitoringService.checkAllAlerts().catch(err => {
+    console.error("❌ Error in initial price alert check:", err);
+  });
 });
+
