@@ -141,7 +141,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
         <div className="mb-6 p-4 bg-green-50 rounded-lg">
           <div className="text-center">
-            <p className="text-sm text-gray-600">Total Amount</p>
+            <p className="text-sm text-gray-600">Amount</p>
             <p className="text-2xl font-bold text-gray-900">
               {currencySymbol}{new Intl.NumberFormat(locale).format(amount)}
             </p>

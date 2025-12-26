@@ -2,19 +2,22 @@
 import React, { useState } from "react";
 import { specialOffers } from "../data/mockData";
 import {
-  MdArrowBack,
+  MdHome,
   MdFlight,
   MdLocationOn,
   MdStar,
   MdLocalOffer,
   MdChevronLeft,
   MdChevronRight,
+  MdChevronRight as ChevronRightIcon,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { getCurrencySymbol } from "../utils/currency";
+import type { Destination } from "../types";
 
 const SpecialOffersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const offersPerPage = 12;
+  const offersPerPage = 8;
 
   // Pagination logic
   const totalPages = Math.ceil(specialOffers.length / offersPerPage);
@@ -31,35 +34,31 @@ const SpecialOffersPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 transition group"
-              >
-                <MdArrowBack className="w-5 h-5 group-hover:-translate-x-1 transition" />
-                <span className="font-medium">Back to Home</span>
-              </Link>
-              <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                  Special Offers
-                </h1>
-                <p className="text-gray-600 mt-1 text-sm md:text-base">
-                  Discover amazing deals on your dream destinations
-                </p>
-              </div>
+        <div className="container mx-auto px-4 py-4">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center gap-2 text-sm mb-4">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-gray-600 hover:text-cyan-600 transition"
+            >
+              <MdHome className="w-4 h-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-1.5 text-gray-900 font-medium">
+              <MdLocalOffer className="w-4 h-4 text-cyan-600" />
+              <span>Special Offers</span>
             </div>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 rounded-lg border border-cyan-200">
-              <MdLocalOffer className="w-5 h-5 text-cyan-600" />
-              <div>
-                <p className="text-xs text-gray-600">Total Offers</p>
-                <p className="text-xl font-bold text-cyan-600">
-                  {specialOffers.length}
-                </p>
-              </div>
-            </div>
+          </nav>
+
+          {/* Title Section */}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+              Special Offers
+            </h1>
+            <p className="text-gray-600 mt-1 text-sm md:text-base">
+              Discover amazing deals on your dream destinations
+            </p>
           </div>
         </div>
       </div>
@@ -141,7 +140,7 @@ const SpecialOffersPage: React.FC = () => {
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-bold text-gray-900">
-                            GHS {offer.price.toLocaleString()}
+                            {getCurrencySymbol(offer.currency)}{offer.price.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -156,13 +155,14 @@ const SpecialOffersPage: React.FC = () => {
                     <div className="flex gap-2">
                       <Link
                         to={`/booking?offerId=${offer.id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="flex-1 bg-cyan-600 text-white py-2.5 px-4 rounded-lg hover:bg-cyan-700 transition font-semibold shadow-md hover:shadow-lg text-center"
                       >
                         Book Now
                       </Link>
                       <Link
-                        to={`/booking?offerId=${offer.id}`}
-                        className="px-4 py-2.5 border-2 border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50 hover:border-cyan-700 transition font-semibold"
+                        to={`/offer/${offer.id}`}
+                        className="px-4 py-2.5 border-2 border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50 hover:border-cyan-700 transition font-semibold text-center"
                       >
                         Details
                       </Link>
@@ -174,16 +174,7 @@ const SpecialOffersPage: React.FC = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* Page Info */}
-                <div className="text-sm text-gray-600">
-                  Showing {indexOfFirstOffer + 1}-
-                  {Math.min(indexOfLastOffer, specialOffers.length)} of{" "}
-                  {specialOffers.length} offers
-                </div>
-
-                {/* Pagination Buttons */}
-                <div className="flex items-center gap-2">
+              <div className="mt-12 flex items-center justify-center gap-2">
                   {/* Previous Button */}
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
@@ -259,7 +250,6 @@ const SpecialOffersPage: React.FC = () => {
                     <span className="hidden sm:inline">Next</span>
                     <MdChevronRight className="w-5 h-5" />
                   </button>
-                </div>
               </div>
             )}
           </>

@@ -107,7 +107,7 @@ export const CacheDebugger: React.FC = () => {
               <span className="font-semibold">{cacheStats.airportCacheSize} entries</span>
             </div>
             <div className="flex justify-between border-t pt-1 mt-1">
-              <span className="text-gray-600">Total:</span>
+              <span className="text-gray-600">All Entries:</span>
               <span className="font-semibold">{cacheStats.totalSize} entries</span>
             </div>
           </div>

@@ -4,10 +4,25 @@ import React, { useState } from "react";
 import { topDeals } from "../data/mockData";
 import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { getCurrencySymbol } from "../utils/currency";
+import DealDetailModal from "./DealDetailModal";
+import type { Deal } from "../types";
 
 const TopDeals: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("Bangkok");
-  const tabs = Object.keys(topDeals);
+  const [activeTab, setActiveTab] = useState("All");
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const tabs = ["All", ...Object.keys(topDeals)];
+
+  const handleDealClick = (deal: Deal) => {
+    setSelectedDeal(deal);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedDeal(null), 300);
+  };
 
   return (
     <section className="py-16 bg-white">
@@ -44,9 +59,13 @@ const TopDeals: React.FC = () => {
 
         {/* Deals Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {topDeals[activeTab]?.map((deal) => (
+          {(activeTab === "All"
+            ? Object.values(topDeals).flat()
+            : topDeals[activeTab] || []
+          ).slice(0, 8).map((deal) => (
             <div
               key={deal.id}
+              onClick={() => handleDealClick(deal)}
               className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group"
             >
               <div className="relative h-48 overflow-hidden">
@@ -70,15 +89,22 @@ const TopDeals: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mb-1">
-                  {deal.perNight ? "Per Night" : "Total Price"}
+                  {deal.perNight ? "Per Night" : "Price"}
                 </p>
                 <p className="text-xl font-bold text-gray-900">
-                  GHS {deal.price.toLocaleString()}
+                  {getCurrencySymbol(deal.currency)}{deal.price.toLocaleString()}
                 </p>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Detail Modal */}
+        <DealDetailModal
+          item={selectedDeal}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
       </div>
     </section>
   );

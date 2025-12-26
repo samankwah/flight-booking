@@ -362,7 +362,7 @@ const HolidayPackagePage: React.FC = () => {
                           <div className="text-2xl font-bold text-gray-900 mb-1">
                             {formatPrice(pkg.totalPrice, pkg.currency)}
                           </div>
-                          <div className="text-sm text-gray-600">Total per person</div>
+                          <div className="text-sm text-gray-600">Per person</div>
                         </div>
 
                         <button className="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center justify-center gap-2 mb-3">

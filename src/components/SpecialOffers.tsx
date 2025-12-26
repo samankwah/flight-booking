@@ -1,10 +1,25 @@
 // src/components/SpecialOffers.tsx
-import React from "react";
+import React, { useState } from "react";
 import { specialOffers } from "../data/mockData";
 import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { getCurrencySymbol } from "../utils/currency";
+import DealDetailModal from "./DealDetailModal";
+import type { Destination } from "../types";
 
 const SpecialOffers: React.FC = () => {
+  const [selectedOffer, setSelectedOffer] = useState<Destination | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOfferClick = (offer: Destination) => {
+    setSelectedOffer(offer);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedOffer(null), 300);
+  };
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -25,6 +40,7 @@ const SpecialOffers: React.FC = () => {
           {specialOffers.map((offer) => (
             <div
               key={offer.id}
+              onClick={() => handleOfferClick(offer)}
               className="relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group"
             >
               <img
@@ -42,12 +58,19 @@ const SpecialOffers: React.FC = () => {
                   {offer.name}
                 </h3>
                 <p className="text-base md:text-lg mt-1 drop-shadow">
-                  Starting from GHS {offer.price.toLocaleString()}
+                  Starting from {getCurrencySymbol(offer.currency)}{offer.price.toLocaleString()}
                 </p>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Detail Modal */}
+        <DealDetailModal
+          item={selectedOffer}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
       </div>
     </section>
   );

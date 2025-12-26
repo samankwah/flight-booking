@@ -269,7 +269,7 @@ const BookingPage: React.FC = () => {
               {selectedFlight?.cabinClass || 'Economy'}
             </p>
             <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
-              Total Price: {selectedFlight?.currency === 'GHS' ? '₵' : selectedFlight?.currency === 'NGN' ? '₦' : '$'} {selectedFlight?.price?.toLocaleString() || '0'}
+              Price: {selectedFlight?.currency === 'GHS' ? '₵' : selectedFlight?.currency === 'NGN' ? '₦' : '$'} {selectedFlight?.price?.toLocaleString() || '0'}
             </p>
           </div>
         </div>

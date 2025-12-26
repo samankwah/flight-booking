@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { topDeals } from "../data/mockData";
 import {
-  MdArrowBack,
+  MdHome,
   MdLocationOn,
   MdStar,
   MdStarHalf,
@@ -12,13 +12,16 @@ import {
   MdNightsStay,
   MdChevronLeft,
   MdChevronRight,
+  MdChevronRight as ChevronRightIcon,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { getCurrencySymbol } from "../utils/currency";
+import type { Deal } from "../types";
 
 const TopDealsPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const dealsPerPage = 12;
+  const dealsPerPage = 8;
   const categories = ["All", ...Object.keys(topDeals)];
 
   // Flatten all deals and filter by category
@@ -72,35 +75,31 @@ const TopDealsPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 transition group"
-              >
-                <MdArrowBack className="w-5 h-5 group-hover:-translate-x-1 transition" />
-                <span className="font-medium">Back to Home</span>
-              </Link>
-              <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                  Top Deals for Today
-                </h1>
-                <p className="text-gray-600 mt-1 text-sm md:text-base">
-                  Discover unbeatable prices on amazing destinations worldwide
-                </p>
-              </div>
+        <div className="container mx-auto px-4 py-4">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center gap-2 text-sm mb-4">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-gray-600 hover:text-cyan-600 transition"
+            >
+              <MdHome className="w-4 h-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-1.5 text-gray-900 font-medium">
+              <MdStar className="w-4 h-4 text-cyan-600" />
+              <span>Top Deals</span>
             </div>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-cyan-50 to-blue-50 px-4 py-3 rounded-lg border border-cyan-200">
-              <MdLocalOffer className="w-5 h-5 text-cyan-600" />
-              <div>
-                <p className="text-xs text-gray-600">Total Deals</p>
-                <p className="text-xl font-bold text-cyan-600">
-                  {filteredDeals.length}
-                </p>
-              </div>
-            </div>
+          </nav>
+
+          {/* Title Section */}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+              Top Deals for Today
+            </h1>
+            <p className="text-gray-600 mt-1 text-sm md:text-base">
+              Discover unbeatable prices on amazing destinations worldwide
+            </p>
           </div>
         </div>
       </div>
@@ -204,12 +203,12 @@ const TopDealsPage: React.FC = () => {
                       <div className="flex items-center gap-1 text-gray-600 mb-1">
                         <MdNightsStay className="w-4 h-4" />
                         <span className="text-xs">
-                          {deal.perNight ? "Per Night" : "Total Price"}
+                          {deal.perNight ? "Per Night" : "Price"}
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-bold text-gray-900">
-                          GHS {deal.price.toLocaleString()}
+                          {getCurrencySymbol(deal.currency)}{deal.price.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -224,13 +223,14 @@ const TopDealsPage: React.FC = () => {
                   <div className="flex gap-2">
                     <Link
                       to={`/booking?dealId=${deal.id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="flex-1 bg-cyan-600 text-white py-2.5 px-4 rounded-lg hover:bg-cyan-700 transition font-semibold shadow-md hover:shadow-lg text-center"
                     >
                       Book Now
                     </Link>
                     <Link
-                      to={`/booking?dealId=${deal.id}`}
-                      className="px-4 py-2.5 border-2 border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50 hover:border-cyan-700 transition font-semibold"
+                      to={`/deal/${deal.id}`}
+                      className="px-4 py-2.5 border-2 border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50 hover:border-cyan-700 transition font-semibold text-center"
                     >
                       Details
                     </Link>
@@ -242,16 +242,7 @@ const TopDealsPage: React.FC = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* Page Info */}
-                <div className="text-sm text-gray-600">
-                  Showing {indexOfFirstDeal + 1}-
-                  {Math.min(indexOfLastDeal, filteredDeals.length)} of{" "}
-                  {filteredDeals.length} deals
-                </div>
-
-                {/* Pagination Buttons */}
-                <div className="flex items-center gap-2">
+              <div className="mt-12 flex items-center justify-center gap-2">
                   {/* Previous Button */}
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
@@ -327,7 +318,6 @@ const TopDealsPage: React.FC = () => {
                     <span className="hidden sm:inline">Next</span>
                     <MdChevronRight className="w-5 h-5" />
                   </button>
-                </div>
               </div>
             )}
           </>

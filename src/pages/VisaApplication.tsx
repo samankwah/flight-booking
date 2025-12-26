@@ -560,7 +560,7 @@ export default function VisaApplication() {
                 <p><strong>Travel Dates:</strong> {applicationData.departureDate} - {applicationData.returnDate}</p>
                 <p><strong>Purpose:</strong> {applicationData.purpose}</p>
                 <div className="mt-4 pt-4 border-t border-blue-300">
-                  <p className="text-lg font-bold">Total Amount: £95.00</p>
+                  <p className="text-lg font-bold">Amount: £95.00</p>
                   <p className="text-xs">Includes processing fee and service charge</p>
                 </div>
               </div>

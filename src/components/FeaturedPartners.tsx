@@ -31,8 +31,8 @@ const featuredAirlines = [
 
 const FeaturedPartners: React.FC = () => {
   const getAirlineLogoUrl = (iataCode: string): string => {
-    // Primary source - Duffel has reliable SVG logos
-    return `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iataCode}.svg`;
+    // Primary source - Kiwi.com has reliable airline logos
+    return `https://images.kiwi.com/airlines/128/${iataCode}.png`;
   };
 
   const getPlaceholderSvg = (iataCode: string, airlineName: string): string => {
@@ -64,10 +64,11 @@ const FeaturedPartners: React.FC = () => {
     const attemptedFallbacks = img.dataset.attempted ? parseInt(img.dataset.attempted) : 0;
 
     const fallbacks = [
-      `https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/${iataCode}.svg`, // Primary (already loaded)
-      `https://content.airhex.com/content/logos/airlines_${iataCode}_200_200_s.png`, // Airhex
-      `https://images.kiwi.com/airlines/64x64/${iataCode}.png`, // Kiwi.com
+      `https://images.kiwi.com/airlines/128/${iataCode}.png`, // Primary (already loaded)
+      `https://www.gstatic.com/flights/airline_logos/70px/${iataCode}.png`, // Google Flights
       `https://pics.avs.io/200/100/${iataCode}.png`, // AVS
+      `https://www.flightaware.com/images/airline_logos/90p/${iataCode}.png`, // FlightAware
+      `https://www.cleartrip.com/resources/images/air-logos/${iataCode}.png`, // Cleartrip
       getPlaceholderSvg(iataCode, airlineName), // Final fallback
     ];
 
@@ -91,32 +92,30 @@ const FeaturedPartners: React.FC = () => {
 
         <Swiper
           modules={[Autoplay]}
-          spaceBetween={10}
+          spaceBetween={15}
           slidesPerView={3}
           loop={true}
           autoplay={{ delay: 2500, disableOnInteraction: false }}
           breakpoints={{
-            640: { slidesPerView: 3 },
-            768: { slidesPerView: 4 },
-            1024: { slidesPerView: 6 },
+            640: { slidesPerView: 4, spaceBetween: 15 },
+            768: { slidesPerView: 5, spaceBetween: 15 },
+            1024: { slidesPerView: 6, spaceBetween: 15 },
           }}
           className="py-0"
         >
           {featuredAirlines.map((airline) => (
             <SwiperSlide key={airline.iataCode} className="flex justify-center">
-              <div className="flex items-center justify-center h-24 w-full px-2">
-                <div className="rounded-lg p-1 transition-shadow duration-300 w-full h-20 flex items-center justify-center">
-                  <img
-                    src={getAirlineLogoUrl(airline.iataCode)}
-                    alt={airline.name}
-                    className="max-h-20 max-w-full object-contain transition-transform duration-300 hover:scale-105 cursor-pointer"
-                    onError={(e) =>
-                      handleImageError(e, airline.iataCode, airline.name)
-                    }
-                    loading="lazy"
-                    title={airline.name}
-                  />
-                </div>
+              <div className="flex items-center justify-center h-20 w-full">
+                <img
+                  src={getAirlineLogoUrl(airline.iataCode)}
+                  alt={airline.name}
+                  className="max-h-16 max-w-full w-auto object-contain transition-transform duration-300 hover:scale-110 cursor-pointer"
+                  onError={(e) =>
+                    handleImageError(e, airline.iataCode, airline.name)
+                  }
+                  loading="lazy"
+                  title={airline.name}
+                />
               </div>
             </SwiperSlide>
           ))}

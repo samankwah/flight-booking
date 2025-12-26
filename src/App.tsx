@@ -29,7 +29,11 @@ const BookingPage = lazy(() => import("./pages/BookingPage"));
 const ConfirmationPage = lazy(() => import("./pages/ConfirmationPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const SpecialOffersPage = lazy(() => import("./pages/SpecialOffersPage"));
+const SpecialOfferDetailPage = lazy(() => import("./pages/SpecialOfferDetailPage"));
 const TopDealsPage = lazy(() => import("./pages/TopDealsPage"));
+const TopDealDetailPage = lazy(() => import("./pages/TopDealDetailPage"));
+const UniversitiesPage = lazy(() => import("./pages/UniversitiesPage"));
+const UniversityDetailPage = lazy(() => import("./pages/UniversityDetailPage"));
 const VisaResults = lazy(() => import("./pages/VisaResults"));
 const VisaApplication = lazy(() => import("./pages/VisaApplication"));
 const VisaConfirmation = lazy(() => import("./pages/VisaConfirmation"));
@@ -90,7 +94,11 @@ const App: React.FC = () => {
           <Route path="/visa/apply" element={<VisaApplication />} />
           <Route path="/visa/confirmation" element={<VisaConfirmation />} />
           <Route path="/offers" element={<SpecialOffersPage />} />
+          <Route path="/offer/:id" element={<SpecialOfferDetailPage />} />
           <Route path="/deals" element={<TopDealsPage />} />
+          <Route path="/deal/:id" element={<TopDealDetailPage />} />
+          <Route path="/universities" element={<UniversitiesPage />} />
+          <Route path="/university/:id" element={<UniversityDetailPage />} />
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/booking" element={<BookingPage />} />{" "}
