@@ -1,25 +1,41 @@
 // src/pages/FlightSearchPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { MdLocalOffer as Offer, MdClose as Close } from "react-icons/md";
 import { searchFlights } from "../services/flightApi";
 import FlightResults from "../components/FlightResults";
 import Sidebar from "../components/Sidebar";
 import MobileSidebar from "../components/MobileSidebar";
 import LoadingWrapper from "../components/LoadingWrapper";
-import { FlightResult, MultiCitySegment } from "../types";
+import TabsSkeleton from "../components/skeletons/TabsSkeleton";
+import { FlightResult, MultiCitySegment, Destination, Deal } from "../types";
+import { specialOffers, topDeals } from "../data/mockData";
+import { useLocalization } from "../contexts/LocalizationContext";
 
 export default function FlightSearchPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { formatPrice } = useLocalization();
   const [flights, setFlights] = useState<FlightResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"best" | "cheapest" | "fastest">("best");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Offer/Deal context
+  const offerId = searchParams.get('offerId');
+  const dealId = searchParams.get('dealId');
+  const suggestedPrice = searchParams.get('suggestedPrice');
+  const [offerContext, setOfferContext] = useState<Destination | Deal | null>(null);
+  const [showOfferBanner, setShowOfferBanner] = useState(true);
+  const fetchInProgress = useRef(false);
+
   useEffect(() => {
     const fetch = async () => {
+      // Prevent duplicate fetches in React Strict Mode
+      if (fetchInProgress.current) return;
+      fetchInProgress.current = true;
       setLoading(true);
       setError(null);
 
@@ -46,7 +62,7 @@ export default function FlightSearchPage() {
           setFlights(results);
 
           if (results.length === 0) {
-            toast.info("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000 });
+            toast("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000, icon: 'ℹ️' });
           } else {
             toast.success(`Found ${results.length} flights!`, { id: loadingToast });
           }
@@ -65,7 +81,7 @@ export default function FlightSearchPage() {
           setFlights(results);
 
           if (results.length === 0) {
-            toast.info("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000 });
+            toast("No flights found for your search. Try adjusting your dates or destinations.", { id: loadingToast, duration: 5000, icon: 'ℹ️' });
           } else {
             toast.success(`Found ${results.length} flights!`, { id: loadingToast });
           }
@@ -76,6 +92,7 @@ export default function FlightSearchPage() {
         toast.error(errorMessage, { id: loadingToast, duration: 6000 });
       } finally {
         setLoading(false);
+        fetchInProgress.current = false;
       }
     };
 
@@ -101,7 +118,28 @@ export default function FlightSearchPage() {
         "Missing required search parameters. Please go back and search for flights."
       );
     }
+
+    // Cleanup: Reset fetch flag when searchParams change
+    return () => {
+      fetchInProgress.current = false;
+    };
   }, [searchParams]);
+
+  // Load offer/deal context
+  useEffect(() => {
+    if (offerId) {
+      const offer = specialOffers.find(o => o.id === offerId);
+      if (offer) setOfferContext(offer);
+    } else if (dealId) {
+      for (const category in topDeals) {
+        const deal = topDeals[category].find(d => d.id === dealId);
+        if (deal) {
+          setOfferContext(deal);
+          break;
+        }
+      }
+    }
+  }, [offerId, dealId]);
 
   const cheapest =
     flights.length > 0
@@ -155,62 +193,66 @@ export default function FlightSearchPage() {
             {/* TABS + MODIFY SEARCH - SAME LINE, RIGHT-ALIGNED */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-8">
               {/* Kayak Tabs - now perfectly inline */}
-              <div className="flex bg-gray-100 rounded-lg p-1 shadow-sm overflow-x-auto">
-                {[
-                  {
-                    key: "cheapest",
-                    label: "Cheapest",
-                    price: cheapest?.price,
-                    dur: cheapest?.duration,
-                  },
-                  {
-                    key: "best",
-                    label: "Best",
-                    price: best?.price,
-                    dur: best?.duration,
-                    info: true,
-                  },
-                  {
-                    key: "fastest",
-                    label: "Fastest",
-                    price: quickest?.price,
-                    dur: quickest?.duration,
-                  },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() =>
-                      setSortBy(tab.key as "best" | "cheapest" | "fastest")
-                    }
-                    className={`flex flex-col px-3 py-2 rounded-md transition-all font-medium text-xs sm:text-sm whitespace-nowrap ${
-                      sortBy === tab.key
-                        ? "bg-white text-blue-700 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">{tab.label}</span>
-                      {tab.info && (
-                        <svg
-                          className="w-3.5 h-3.5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs mt-0.5">
-                      ${tab.price || "-"} •{" "}
-                      {tab.dur ? formatDuration(tab.dur) : "-"}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {loading ? (
+                <TabsSkeleton />
+              ) : (
+                <div className="flex bg-gray-100 rounded-lg p-1 shadow-sm overflow-x-auto">
+                  {[
+                    {
+                      key: "cheapest",
+                      label: "Cheapest",
+                      price: cheapest?.price,
+                      dur: cheapest?.duration,
+                    },
+                    {
+                      key: "best",
+                      label: "Best",
+                      price: best?.price,
+                      dur: best?.duration,
+                      info: true,
+                    },
+                    {
+                      key: "fastest",
+                      label: "Fastest",
+                      price: quickest?.price,
+                      dur: quickest?.duration,
+                    },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() =>
+                        setSortBy(tab.key as "best" | "cheapest" | "fastest")
+                      }
+                      className={`flex flex-col px-3 py-2 rounded-md transition-all font-medium text-xs sm:text-sm whitespace-nowrap ${
+                        sortBy === tab.key
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold">{tab.label}</span>
+                        {tab.info && (
+                          <svg
+                            className="w-3.5 h-3.5 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs mt-0.5">
+                        ${tab.price || "-"} •{" "}
+                        {tab.dur ? formatDuration(tab.dur) : "-"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Mobile Filter Button + Modify Search - same line, right-aligned */}
               <div className="flex items-center gap-4">
@@ -245,11 +287,46 @@ export default function FlightSearchPage() {
         </div>
       </header>
 
+      {/* Offer Context Banner */}
+      {offerContext && showOfferBanner && (
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 border-b border-orange-200">
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={offerContext.image}
+                  alt={offerContext.name}
+                  className="w-12 h-12 rounded-lg object-cover shadow-md"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Offer className="w-4 h-4 text-orange-600" />
+                    <p className="text-sm font-semibold text-gray-900">
+                      {'rating' in offerContext ? 'Top Deal' : 'Special Offer'}: {offerContext.name}, {offerContext.country}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Reference price: {formatPrice(parseFloat(suggestedPrice || '0'))} • Searching for available flights...
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowOfferBanner(false)}
+                className="p-1 hover:bg-orange-100 rounded-full transition"
+                aria-label="Close banner"
+              >
+                <Close className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="flex gap-6 lg:gap-8">
           <aside className="w-80 hidden lg:block sticky top-32 self-start">
-            <Sidebar />
+            <Sidebar loading={loading} />
           </aside>
 
           <main className="flex-1">

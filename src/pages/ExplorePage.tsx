@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MdFavorite as Heart, MdExpandMore as ChevronDown, MdCalendarToday as Calendar } from "react-icons/md";
+import {
+  MdFavorite as Heart,
+  MdExpandMore as ChevronDown,
+  MdCalendarToday as Calendar,
+} from "react-icons/md";
 import { searchFlightInspiration } from "../services/exploreApi";
 import toast from "react-hot-toast";
+import type { FlightResult } from "../types";
+import { useLocalization } from "../contexts/LocalizationContext";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
@@ -13,6 +20,7 @@ interface Deal {
   country: string;
   airport: string;
   price: number;
+  currency: string;
   dates?: string;
   departureDate?: string;
   returnDate?: string;
@@ -26,24 +34,164 @@ interface Deal {
 }
 
 // Airport location data mapping
-const airportLocations: {[key: string]: {city: string; country: string; lat: number; lng: number; image: string}} = {
-  "LOS": { city: "Lagos", country: "Nigeria", lat: 6.5244, lng: 3.3792, image: "https://images.unsplash.com/photo-1569940929339-5a97b0e49874?w=400&q=80" },
-  "ABJ": { city: "Abidjan", country: "Ivory Coast", lat: 5.36, lng: -4.0083, image: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400&q=80" },
-  "DSS": { city: "Dakar", country: "Senegal", lat: 14.6928, lng: -17.4467, image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400&q=80" },
-  "NBO": { city: "Nairobi", country: "Kenya", lat: -1.2921, lng: 36.8219, image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=400&q=80" },
-  "LHR": { city: "London", country: "United Kingdom", lat: 51.5074, lng: -0.1278, image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&q=80" },
-  "DXB": { city: "Dubai", country: "UAE", lat: 25.2048, lng: 55.2708, image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&q=80" },
-  "JFK": { city: "New York", country: "USA", lat: 40.7128, lng: -74.006, image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80" },
-  "CMN": { city: "Casablanca", country: "Morocco", lat: 33.5731, lng: -7.5898, image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&q=80" },
-  "CDG": { city: "Paris", country: "France", lat: 48.8566, lng: 2.3522, image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&q=80" },
-  "CAI": { city: "Cairo", country: "Egypt", lat: 30.0444, lng: 31.2357, image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&q=80" },
-  "CPT": { city: "Cape Town", country: "South Africa", lat: -33.9249, lng: 18.4241, image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=400&q=80" },
-  "IST": { city: "Istanbul", country: "Turkey", lat: 41.0082, lng: 28.9784, image: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&q=80" },
-  "LAD": { city: "Luanda", country: "Angola", lat: -8.8383, lng: 13.2344, image: "https://images.unsplash.com/photo-1590955256461-fef91b38f8c1?w=400&q=80" },
-  "ACC": { city: "Accra", country: "Ghana", lat: 5.6037, lng: -0.1870, image: "https://images.unsplash.com/photo-1568633686273-f18f1ce85b3c?w=400&q=80" },
+const airportLocations: {
+  [key: string]: {
+    city: string;
+    country: string;
+    lat: number;
+    lng: number;
+    image: string;
+  };
+} = {
+  LOS: {
+    city: "Lagos",
+    country: "Nigeria",
+    lat: 6.5244,
+    lng: 3.3792,
+    image:
+      "https://images.unsplash.com/photo-1569940929339-5a97b0e49874?w=400&q=80",
+  },
+  ABJ: {
+    city: "Abidjan",
+    country: "Ivory Coast",
+    lat: 5.36,
+    lng: -4.0083,
+    image:
+      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400&q=80",
+  },
+  DSS: {
+    city: "Dakar",
+    country: "Senegal",
+    lat: 14.6928,
+    lng: -17.4467,
+    image:
+      "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400&q=80",
+  },
+  NBO: {
+    city: "Nairobi",
+    country: "Kenya",
+    lat: -1.2921,
+    lng: 36.8219,
+    image:
+      "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=400&q=80",
+  },
+  LHR: {
+    city: "London",
+    country: "United Kingdom",
+    lat: 51.5074,
+    lng: -0.1278,
+    image:
+      "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&q=80",
+  },
+  DXB: {
+    city: "Dubai",
+    country: "UAE",
+    lat: 25.2048,
+    lng: 55.2708,
+    image:
+      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&q=80",
+  },
+  JFK: {
+    city: "New York",
+    country: "USA",
+    lat: 40.7128,
+    lng: -74.006,
+    image:
+      "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80",
+  },
+  CMN: {
+    city: "Casablanca",
+    country: "Morocco",
+    lat: 33.5731,
+    lng: -7.5898,
+    image:
+      "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&q=80",
+  },
+  CDG: {
+    city: "Paris",
+    country: "France",
+    lat: 48.8566,
+    lng: 2.3522,
+    image:
+      "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&q=80",
+  },
+  CAI: {
+    city: "Cairo",
+    country: "Egypt",
+    lat: 30.0444,
+    lng: 31.2357,
+    image:
+      "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&q=80",
+  },
+  CPT: {
+    city: "Cape Town",
+    country: "South Africa",
+    lat: -33.9249,
+    lng: 18.4241,
+    image:
+      "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=400&q=80",
+  },
+  IST: {
+    city: "Istanbul",
+    country: "Turkey",
+    lat: 41.0082,
+    lng: 28.9784,
+    image:
+      "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&q=80",
+  },
+  LAD: {
+    city: "Luanda",
+    country: "Angola",
+    lat: -8.8383,
+    lng: 13.2344,
+    image:
+      "https://images.unsplash.com/photo-1590955256461-fef91b38f8c1?w=400&q=80",
+  },
+  ACC: {
+    city: "Accra",
+    country: "Ghana",
+    lat: 5.6037,
+    lng: -0.187,
+    image:
+      "https://images.unsplash.com/photo-1568633686273-f18f1ce85b3c?w=400&q=80",
+  },
+};
+
+// Helper function to transform Deal to FlightResult for booking
+const transformDealToFlight = (deal: Deal, origin: string): FlightResult => {
+  // Parse dates to extract times (using simple placeholder times since API doesn't provide exact times)
+  const depDate = new Date(deal.departureDate || "");
+  const retDate = deal.returnDate ? new Date(deal.returnDate) : null;
+
+  // Generate reasonable placeholder times
+  const departureTime = "08:00 AM"; // Morning departure
+  const arrivalTime = "12:00 PM"; // Afternoon arrival
+  const returnDepartureTime = retDate ? "02:00 PM" : undefined;
+  const returnArrivalTime = retDate ? "06:00 PM" : undefined;
+
+  return {
+    id: deal.id,
+    airline: "Flight Inspiration", // Placeholder since inspiration API doesn't provide airline
+    airlineCode: deal.airport.substring(0, 2), // Use airport code prefix as placeholder
+    departureAirport: origin,
+    arrivalAirport: deal.airport,
+    departureTime,
+    arrivalTime,
+    duration: 240, // 4 hours placeholder
+    stops: deal.stops === "Nonstop" ? 0 : 1,
+    price: deal.price,
+    currency: deal.currency,
+    cabinClass: "Economy",
+    returnDepartureTime,
+    returnArrivalTime,
+    returnDuration: retDate ? 240 : undefined,
+    returnStops: retDate && deal.stops !== "Nonstop" ? 1 : 0,
+  };
 };
 
 const ExplorePage: React.FC = () => {
+  const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
   const [origin, setOrigin] = useState("ACC");
   const [originDisplay, setOriginDisplay] = useState("Accra (ACC)");
   const [destination, setDestination] = useState("");
@@ -84,7 +232,8 @@ const ExplorePage: React.FC = () => {
             country: dest.country,
             lat: 0,
             lng: 0,
-            image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80"
+            image:
+              "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80",
           };
 
           const departureDate = new Date(dest.departureDate);
@@ -96,7 +245,18 @@ const ExplorePage: React.FC = () => {
             country: locationData.country,
             airport: dest.airport,
             price: dest.price,
-            dates: `${departureDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${returnDate ? ` – ${returnDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`,
+            currency: dest.currency,
+            dates: `${departureDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })}${
+              returnDate
+                ? ` – ${returnDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}`
+                : ""
+            }`,
             departureDate: dest.departureDate,
             returnDate: dest.returnDate,
             stops: "Nonstop", // Amadeus API doesn't provide this in inspiration search
@@ -151,7 +311,7 @@ const ExplorePage: React.FC = () => {
     const map = mapRef.current;
 
     // Clear existing markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
+    Object.values(markersRef.current).forEach((marker) => marker.remove());
     markersRef.current = {};
 
     // Origin coordinates (Accra)
@@ -180,7 +340,9 @@ const ExplorePage: React.FC = () => {
           className: "price-marker",
           html: `<div class="price-marker-content" data-deal-id="${
             deal.id
-          }" style="background:#fff;color:#000;font-weight:600;padding:6px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);font-size:13px;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;border:1px solid rgba(0,0,0,0.08);transform:rotate(-2deg);transition:all 0.2s;">GHS ${deal.price.toLocaleString()}</div>`,
+          }" style="background:#fff;color:#000;font-weight:600;padding:6px 12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.25);font-size:13px;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;border:1px solid rgba(0,0,0,0.08);transform:rotate(-2deg);transition:all 0.2s;">${formatPrice(
+            convertCurrency(deal.price, deal.currency)
+          )}</div>`,
           iconSize: [100, 32],
           iconAnchor: [50, 40],
         }),
@@ -229,33 +391,49 @@ const ExplorePage: React.FC = () => {
     if (!duration) return 0;
     const hours = duration.match(/(\d+)h/);
     const minutes = duration.match(/(\d+)m/);
-    return (hours ? parseInt(hours[1]) * 60 : 0) + (minutes ? parseInt(minutes[1]) : 0);
+    return (
+      (hours ? parseInt(hours[1]) * 60 : 0) +
+      (minutes ? parseInt(minutes[1]) : 0)
+    );
   };
 
   // Filter deals based on selected criteria
   const filteredDeals = dealsList.filter((deal) => {
     // Filter by destination search
-    if (destination && !deal.city.toLowerCase().includes(destination.toLowerCase()) &&
-        !deal.country.toLowerCase().includes(destination.toLowerCase())) {
+    if (
+      destination &&
+      !deal.city.toLowerCase().includes(destination.toLowerCase()) &&
+      !deal.country.toLowerCase().includes(destination.toLowerCase())
+    ) {
       return false;
     }
 
     // Filter by stops
     if (selectedStops.length > 0) {
-      if (selectedStops.includes("nonstop") && deal.stops !== "Nonstop") return false;
-      if (selectedStops.includes("1stop") && deal.stops !== "1 stop") return false;
+      if (selectedStops.includes("nonstop") && deal.stops !== "Nonstop")
+        return false;
+      if (selectedStops.includes("1stop") && deal.stops !== "1 stop")
+        return false;
     }
 
     // Filter by price
-    if (deal.price < priceRange.min || deal.price > priceRange.max) return false;
+    if (deal.price < priceRange.min || deal.price > priceRange.max)
+      return false;
 
     // Filter by duration
     if (selectedDuration.length > 0) {
       const durationMins = getDurationInMinutes(deal.duration);
       let matchesDuration = false;
-      if (selectedDuration.includes("short") && durationMins < 180) matchesDuration = true;
-      if (selectedDuration.includes("medium") && durationMins >= 180 && durationMins < 360) matchesDuration = true;
-      if (selectedDuration.includes("long") && durationMins >= 360) matchesDuration = true;
+      if (selectedDuration.includes("short") && durationMins < 180)
+        matchesDuration = true;
+      if (
+        selectedDuration.includes("medium") &&
+        durationMins >= 180 &&
+        durationMins < 360
+      )
+        matchesDuration = true;
+      if (selectedDuration.includes("long") && durationMins >= 360)
+        matchesDuration = true;
       if (!matchesDuration) return false;
     }
 
@@ -282,13 +460,13 @@ const ExplorePage: React.FC = () => {
       </div>
 
       {/* Floating Sidebar */}
-      <div className="absolute left-2 top-2 w-full md:w-[200px] z-[900] pointer-events-none">
+      <div className="absolute left-5 lg:left-8 top-2 w-auto md:w-[350px] z-[900] pointer-events-none">
         <div className="bg-white rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-80px)] pointer-events-auto overflow-hidden">
           {/* Search Header */}
           <div className="flex-shrink-0 p-2.5 bg-white border-b border-gray-200 rounded-md relative z-10 overflow-visible">
             <div className="space-y-2">
               {/* Origin and Destination Inputs */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-row gap-1.5">
                 <div className="relative">
                   <input
                     type="text"
@@ -388,10 +566,12 @@ const ExplorePage: React.FC = () => {
                       : "bg-white hover:bg-gray-50 border-gray-300"
                   }`}
                 >
-                  <span>
-                    Stops
-                  </span>
-                  <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showStopsMenu ? 'rotate-180' : ''}`} />
+                  <span>Stops</span>
+                  <ChevronDown
+                    className={`w-2.5 h-2.5 transition-transform ${
+                      showStopsMenu ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {showStopsMenu && (
                   <>
@@ -409,7 +589,9 @@ const ExplorePage: React.FC = () => {
                               if (e.target.checked) {
                                 setSelectedStops([...selectedStops, "nonstop"]);
                               } else {
-                                setSelectedStops(selectedStops.filter((s) => s !== "nonstop"));
+                                setSelectedStops(
+                                  selectedStops.filter((s) => s !== "nonstop")
+                                );
                               }
                             }}
                             className="w-3.5 h-3.5 text-cyan-600 rounded"
@@ -424,7 +606,9 @@ const ExplorePage: React.FC = () => {
                               if (e.target.checked) {
                                 setSelectedStops([...selectedStops, "1stop"]);
                               } else {
-                                setSelectedStops(selectedStops.filter((s) => s !== "1stop"));
+                                setSelectedStops(
+                                  selectedStops.filter((s) => s !== "1stop")
+                                );
                               }
                             }}
                             className="w-3.5 h-3.5 text-cyan-600 rounded"
@@ -468,7 +652,11 @@ const ExplorePage: React.FC = () => {
                   }`}
                 >
                   <span>Price</span>
-                  <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showPriceMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-2.5 h-2.5 transition-transform ${
+                      showPriceMenu ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {showPriceMenu && (
                   <>
@@ -538,7 +726,11 @@ const ExplorePage: React.FC = () => {
                   }`}
                 >
                   <span>Flight dur.</span>
-                  <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showDurationMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-2.5 h-2.5 transition-transform ${
+                      showDurationMenu ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {showDurationMenu && (
                   <>
@@ -554,9 +746,14 @@ const ExplorePage: React.FC = () => {
                             checked={selectedDuration.includes("short")}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedDuration([...selectedDuration, "short"]);
+                                setSelectedDuration([
+                                  ...selectedDuration,
+                                  "short",
+                                ]);
                               } else {
-                                setSelectedDuration(selectedDuration.filter((d) => d !== "short"));
+                                setSelectedDuration(
+                                  selectedDuration.filter((d) => d !== "short")
+                                );
                               }
                             }}
                             className="w-3.5 h-3.5 text-cyan-600 rounded"
@@ -569,9 +766,14 @@ const ExplorePage: React.FC = () => {
                             checked={selectedDuration.includes("medium")}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedDuration([...selectedDuration, "medium"]);
+                                setSelectedDuration([
+                                  ...selectedDuration,
+                                  "medium",
+                                ]);
                               } else {
-                                setSelectedDuration(selectedDuration.filter((d) => d !== "medium"));
+                                setSelectedDuration(
+                                  selectedDuration.filter((d) => d !== "medium")
+                                );
                               }
                             }}
                             className="w-3.5 h-3.5 text-cyan-600 rounded"
@@ -584,9 +786,14 @@ const ExplorePage: React.FC = () => {
                             checked={selectedDuration.includes("long")}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedDuration([...selectedDuration, "long"]);
+                                setSelectedDuration([
+                                  ...selectedDuration,
+                                  "long",
+                                ]);
                               } else {
-                                setSelectedDuration(selectedDuration.filter((d) => d !== "long"));
+                                setSelectedDuration(
+                                  selectedDuration.filter((d) => d !== "long")
+                                );
                               }
                             }}
                             className="w-3.5 h-3.5 text-cyan-600 rounded"
@@ -626,7 +833,11 @@ const ExplorePage: React.FC = () => {
                   className="px-2 py-1 border border-gray-300 rounded-md text-[11px] whitespace-nowrap bg-white flex items-center gap-1 transition-all font-medium hover:bg-gray-50"
                 >
                   <span>Type</span>
-                  <ChevronDown className={`w-2.5 h-2.5 transition-transform ${showTripTypeMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-2.5 h-2.5 transition-transform ${
+                      showTripTypeMenu ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
                 {showTripTypeMenu && (
                   <>
@@ -693,7 +904,9 @@ const ExplorePage: React.FC = () => {
               </>
             ) : error ? (
               <div className="p-8 text-center text-red-500">
-                <p className="text-lg font-medium mb-2">Error loading flights</p>
+                <p className="text-lg font-medium mb-2">
+                  Error loading flights
+                </p>
                 <p className="text-sm">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
@@ -705,7 +918,9 @@ const ExplorePage: React.FC = () => {
             ) : filteredDeals.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 <p className="text-lg font-medium mb-2">No flights found</p>
-                <p className="text-sm">Try adjusting your filters or changing your origin</p>
+                <p className="text-sm">
+                  Try adjusting your filters or changing your origin
+                </p>
               </div>
             ) : (
               filteredDeals.map((deal, index) => (
@@ -714,6 +929,10 @@ const ExplorePage: React.FC = () => {
                   id={`deal-${deal.id}`}
                   onMouseEnter={() => setHoveredDealId(deal.id)}
                   onMouseLeave={() => setHoveredDealId(null)}
+                  onClick={() => {
+                    const flightData = transformDealToFlight(deal, origin);
+                    navigate("/booking", { state: { flight: flightData } });
+                  }}
                   className={`hover:bg-gray-100 cursor-pointer transition-all duration-200 ${
                     index !== 0 ? "border-t border-gray-200" : ""
                   } ${hoveredDealId === deal.id ? "bg-blue-50" : ""}`}
@@ -738,7 +957,9 @@ const ExplorePage: React.FC = () => {
                           <p className="text-[11px] text-gray-600 mb-0.5">
                             {deal.dates}
                           </p>
-                          <p className="text-[11px] text-gray-500">{deal.stops}</p>
+                          <p className="text-[11px] text-gray-500">
+                            {deal.stops}
+                          </p>
                         </div>
                         <button
                           onClick={(e) => {
@@ -758,7 +979,7 @@ const ExplorePage: React.FC = () => {
                       </div>
                       <div className="mt-1">
                         <p className="font-bold text-base text-gray-900">
-                          ${deal.price}
+                          {formatPrice(convertCurrency(deal.price, deal.currency))}
                         </p>
                       </div>
                     </div>

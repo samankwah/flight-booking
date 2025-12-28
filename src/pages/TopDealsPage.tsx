@@ -15,12 +15,13 @@ import {
   MdChevronRight as ChevronRightIcon,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import type { Deal } from "../types";
 
 const TopDealsPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const { convertCurrency, formatPrice } = useLocalization();
   const dealsPerPage = 8;
   const categories = ["All", ...Object.keys(topDeals)];
 
@@ -208,7 +209,7 @@ const TopDealsPage: React.FC = () => {
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-bold text-gray-900">
-                          {getCurrencySymbol(deal.currency)}{deal.price.toLocaleString()}
+                          {formatPrice(convertCurrency(deal.price, deal.currency))}
                         </span>
                       </div>
                     </div>

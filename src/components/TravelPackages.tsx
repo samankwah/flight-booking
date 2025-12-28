@@ -8,7 +8,7 @@ import {
   MdCheckCircle,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import ApplicationModal from "./ApplicationModal";
 
 interface UniversityAd {
@@ -162,6 +162,7 @@ const universities: UniversityAd[] = [
 const regions = ["All", "Europe", "America", "Middle East"];
 
 const TravelPackages: React.FC = () => {
+  const { convertCurrency, formatPrice } = useLocalization();
   const [activeRegion, setActiveRegion] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUniversity, setSelectedUniversity] = useState<{ id: string; schoolName: string } | null>(null);
@@ -308,8 +309,7 @@ const TravelPackages: React.FC = () => {
                   <div>
                     <p className="text-xs text-gray-500">App Fee</p>
                     <p className="text-sm font-bold text-gray-900">
-                      {getCurrencySymbol(uni.currency)}
-                      {uni.applicationFee}
+                      {formatPrice(convertCurrency(uni.applicationFee, uni.currency))}
                     </p>
                   </div>
                 </div>

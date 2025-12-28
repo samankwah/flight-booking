@@ -1,7 +1,12 @@
 import { useFilterStore } from "../store/filterStore";
 import { useMemo } from "react";
+import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 
-export default function Sidebar() {
+interface SidebarProps {
+  loading?: boolean;
+}
+
+export default function Sidebar({ loading = false }: SidebarProps) {
   const { filters, updateFilter, resetFilters } = useFilterStore();
 
   const airlines = [
@@ -37,6 +42,10 @@ export default function Sidebar() {
       : [...(filters.alliances || []), alliance];
     updateFilter("alliances", newAlliances);
   };
+
+  if (loading) {
+    return <SidebarSkeleton />;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6 sticky top-6 max-h-screen overflow-y-auto">

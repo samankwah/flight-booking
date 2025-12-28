@@ -31,3 +31,19 @@ server/.env.production
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase Admin SDK - NEVER commit these!
+server/config/firebase-admin-sdk.json
+server/config/firebase-admin.json
+serverconfigfirebase.js
+
+# Test and debug files
+nul
+server/nul
+src/pages/nul
+server/test-*.js
+server/check-*.js
+server/diagnose-*.js
+
+# Local settings
+.claude/settings.local.json

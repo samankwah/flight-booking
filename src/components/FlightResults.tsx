@@ -3,7 +3,9 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { FlightResult } from "../types";
 
 import { useFilterStore } from "../store/filterStore";
+import { useLocalization } from "../contexts/LocalizationContext";
 import PriceAlertButton from "./PriceAlertButton";
+import FlightResultsSkeleton from "./skeletons/FlightResultsSkeleton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,7 +24,9 @@ export default function FlightResults({
   const { filters } = useFilterStore();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice, currency } = useLocalization();
   const safeFlights = Array.isArray(flights) ? flights : [];
+  const suggestedPrice = parseFloat(searchParams.get('suggestedPrice') || '0');
 
   // Handle flight selection and navigation to booking page
   const handleSelectFlight = (flight: FlightResult) => {
@@ -32,25 +36,9 @@ export default function FlightResults({
     });
   };
 
-  // Get currency symbol based on currency code
-  const getCurrencySymbol = (currencyCode?: string): string => {
-    const code = currencyCode?.toUpperCase() || 'USD';
-    const symbols: Record<string, string> = {
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£',
-      'GHS': '₵',
-      'NGN': '₦',
-      'ZAR': 'R',
-      'KES': 'KSh',
-      'EGP': 'E£',
-      'MAD': 'MAD',
-      'TZS': 'TSh',
-      'UGX': 'USh',
-      'XOF': 'CFA',
-      'XAF': 'FCFA',
-    };
-    return symbols[code] || code + ' ';
+  // Helper to get converted price for a flight
+  const getConvertedPrice = (flight: FlightResult): number => {
+    return convertCurrency(flight.price, flight.currency || 'USD');
   };
 
   const getAirlineCode = (name: string) => {
@@ -182,38 +170,8 @@ export default function FlightResults({
   const displayedFlights = sortedFlights.slice(0, displayedCount);
   const hasMore = displayedCount < sortedFlights.length;
 
-  // Skeleton Card
-  const SkeletonCard = () => (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border animate-pulse">
-      <div className="flex flex-col sm:grid sm:grid-cols-12 gap-4 sm:gap-6">
-        <div className="flex justify-center sm:col-span-2">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gray-200 rounded-xl sm:rounded-2xl" />
-        </div>
-        <div className="sm:col-span-3 space-y-3">
-          <div className="h-6 sm:h-8 bg-gray-200 rounded w-20 sm:w-24" />
-          <div className="h-4 sm:h-5 bg-gray-200 rounded w-12 sm:w-16" />
-        </div>
-        <div className="hidden sm:block sm:col-span-1" />
-        <div className="sm:col-span-3 space-y-3">
-          <div className="h-6 sm:h-8 bg-gray-200 rounded w-20 sm:w-24" />
-          <div className="h-4 sm:h-5 bg-gray-200 rounded w-12 sm:w-16" />
-        </div>
-        <div className="sm:col-span-3 sm:text-right space-y-3">
-          <div className="h-8 sm:h-10 bg-gray-200 rounded w-24 sm:w-32 sm:ml-auto" />
-          <div className="h-10 sm:h-12 bg-gray-200 rounded w-full sm:w-40 sm:ml-auto" />
-        </div>
-      </div>
-    </div>
-  );
-
   if (loading) {
-    return (
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-    );
+    return <FlightResultsSkeleton />;
   }
 
   if (safeFlights.length === 0 && !loading) {
@@ -239,8 +197,8 @@ export default function FlightResults({
             {/* Mobile Layout */}
             <div className="flex flex-col space-y-4 md:hidden">
               {/* Header: Logo + Price */}
-              <div className="flex items-center justify-between">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex items-center justify-center shadow-inner">
+              <div className="flex items-center justify-between gap-3">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex items-center justify-center shadow-inner flex-shrink-0">
                   <img
                     src={getAirlineLogoUrl(code)}
                     alt=""
@@ -249,11 +207,26 @@ export default function FlightResults({
                     loading="lazy"
                   />
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-extrabold text-blue-600">
-                    {getCurrencySymbol(flight.currency)}{Math.round(flight.price)}
+                <div className="text-right flex-shrink-0 min-w-0">
+                  <div className="text-base sm:text-lg font-bold text-blue-600 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {formatPrice(getConvertedPrice(flight))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Per adult</p>
+                  <p className="text-xs text-gray-500 mt-1 whitespace-nowrap">Per adult</p>
+                  {suggestedPrice > 0 && (
+                    <div className="text-xs mt-1">
+                      {getConvertedPrice(flight) < suggestedPrice ? (
+                        <span className="text-green-600 font-semibold">
+                          ${Math.round(suggestedPrice - getConvertedPrice(flight))} cheaper!
+                        </span>
+                      ) : getConvertedPrice(flight) === suggestedPrice ? (
+                        <span className="text-blue-600 font-semibold">Matches offer price</span>
+                      ) : (
+                        <span className="text-amber-600">
+                          ${Math.round(getConvertedPrice(flight) - suggestedPrice)} more
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -390,9 +363,24 @@ export default function FlightResults({
 
               {/* Price */}
               <div className="md:col-span-3 text-right">
-                <div className="text-3xl lg:text-4xl font-extrabold text-blue-600">
-                  {getCurrencySymbol(flight.currency)}{Math.round(flight.price)}
+                <div className="text-xl lg:text-2xl font-bold text-blue-600 break-words">
+                  {formatPrice(getConvertedPrice(flight))}
                 </div>
+                {suggestedPrice > 0 && (
+                  <div className="text-xs mt-2">
+                    {getConvertedPrice(flight) < suggestedPrice ? (
+                      <span className="text-green-600 font-semibold">
+                        ${Math.round(suggestedPrice - getConvertedPrice(flight))} cheaper than offer!
+                      </span>
+                    ) : getConvertedPrice(flight) === suggestedPrice ? (
+                      <span className="text-blue-600 font-semibold">Matches offer price</span>
+                    ) : (
+                      <span className="text-amber-600">
+                        ${Math.round(getConvertedPrice(flight) - suggestedPrice)} more than offer
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="mt-4 flex flex-col gap-2">
                   <button
                     onClick={() => handleSelectFlight(flight)}

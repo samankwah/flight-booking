@@ -12,11 +12,12 @@ import {
   MdChevronRight as ChevronRightIcon,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import type { Destination } from "../types";
 
 const SpecialOffersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const { convertCurrency, formatPrice } = useLocalization();
   const offersPerPage = 8;
 
   // Pagination logic
@@ -140,7 +141,7 @@ const SpecialOffersPage: React.FC = () => {
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-bold text-gray-900">
-                            {getCurrencySymbol(offer.currency)}{offer.price.toLocaleString()}
+                            {formatPrice(convertCurrency(offer.price, offer.currency))}
                           </span>
                         </div>
                       </div>

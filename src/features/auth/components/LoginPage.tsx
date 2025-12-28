@@ -1,33 +1,64 @@
 import React, { useState } from "react";
 import { MdEmail as Mail, MdLock as Lock } from "react-icons/md";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { FirebaseError } from "firebase/app"; // Import FirebaseError from firebase/app
-import { app } from "../../../firebase"; // Adjust path as needed
+import { useAuth } from "../../../contexts/AuthContext";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const auth = getAuth(app);
+  const { loginWithEmail, signInWithGoogle, signInWithApple } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Clear previous errors
+    setError(null);
+    setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Redirect to a dashboard or home page upon successful login
-      navigate("/"); // Or a protected route like /dashboard
+      await loginWithEmail(email, password);
+      navigate("/");
     } catch (err: unknown) {
-      if (err instanceof FirebaseError) {
-        setError(err.message);
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("An unknown error occurred during login.");
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      navigate("/");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await signInWithApple();
+      navigate("/");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,13 +141,53 @@ const LoginPage: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </motion.button>
           </div>
         </form>
-        <div className="text-center">
+
+        {/* Divider */}
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
+                Or continue with
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Social Sign-In Buttons */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium text-gray-700 dark:text-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FcGoogle className="w-5 h-5" />
+            <span>Google</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleAppleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium text-gray-700 dark:text-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FaApple className="w-5 h-5" />
+            <span>Apple</span>
+          </motion.button>
+        </div>
+
+        <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Don't have an account?{" "}
             <Link

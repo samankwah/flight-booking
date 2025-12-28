@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { topDeals } from "../data/mockData";
 import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import DealDetailModal from "./DealDetailModal";
 import type { Deal } from "../types";
 
@@ -12,6 +12,7 @@ const TopDeals: React.FC = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { convertCurrency, formatPrice } = useLocalization();
   const tabs = ["All", ...Object.keys(topDeals)];
 
   const handleDealClick = (deal: Deal) => {
@@ -92,7 +93,7 @@ const TopDeals: React.FC = () => {
                   {deal.perNight ? "Per Night" : "Price"}
                 </p>
                 <p className="text-xl font-bold text-gray-900">
-                  {getCurrencySymbol(deal.currency)}{deal.price.toLocaleString()}
+                  {formatPrice(convertCurrency(deal.price, deal.currency))}
                 </p>
               </div>
             </div>

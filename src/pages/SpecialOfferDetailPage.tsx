@@ -18,8 +18,10 @@ import {
   MdEventSeat,
   MdLuggage,
 } from "react-icons/md";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import { specialOffers } from "../data/mockData";
+import { getAirportCode, getSmartDepartureDate, getSmartReturnDate } from "../utils/airportLookup";
+import type { Destination } from "../types";
 
 type ImageCategory = "destination" | "activities" | "hotels" | "dining" | "attractions" | "transport";
 
@@ -29,9 +31,33 @@ interface OfferImage {
   title: string;
 }
 
+// Helper function to build flight search URL from offer
+const buildOfferSearchUrl = (offer: Destination): string => {
+  const departureDate = getSmartDepartureDate();
+  const returnDate = getSmartReturnDate(departureDate);
+  const destinationCode = getAirportCode(offer.name, offer.country);
+
+  const params = new URLSearchParams({
+    tripType: 'return',
+    from: 'ACC', // Default origin - could be made dynamic based on user location
+    to: destinationCode,
+    departureDate: departureDate,
+    returnDate: returnDate,
+    adults: '1',
+    children: '0',
+    infants: '0',
+    travelClass: 'ECONOMY',
+    offerId: offer.id,
+    suggestedPrice: offer.price.toString(),
+  });
+
+  return `/flights?${params.toString()}`;
+};
+
 const SpecialOfferDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
   const [activeImageCategory, setActiveImageCategory] = useState<ImageCategory>("destination");
 
   const offer = specialOffers.find((o) => o.id === id);
@@ -226,10 +252,10 @@ const SpecialOfferDetailPage: React.FC = () => {
               </div>
             </div>
             <Link
-              to={`/booking?offerId=${offer.id}`}
+              to={buildOfferSearchUrl(offer)}
               className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-cyan-700 hover:to-blue-700 transition shadow-lg hover:shadow-xl text-center"
             >
-              Book This Offer
+              Search Flights for This Offer
             </Link>
           </div>
         </div>
@@ -367,7 +393,7 @@ const SpecialOfferDetailPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold text-gray-900">
-                    {getCurrencySymbol(offer.currency)}{offer.price.toLocaleString()}
+                    {formatPrice(convertCurrency(offer.price, offer.currency))}
                   </span>
                   <span className="text-gray-600">/person</span>
                 </div>
@@ -375,7 +401,7 @@ const SpecialOfferDetailPage: React.FC = () => {
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-green-600">Save 30%</span>
                   <span className="text-xs text-gray-500 line-through">
-                    {getCurrencySymbol(offer.currency)}{Math.round(offer.price * 1.43).toLocaleString()}
+                    {formatPrice(convertCurrency(Math.round(offer.price * 1.43), offer.currency))}
                   </span>
                 </div>
               </div>
@@ -402,10 +428,10 @@ const SpecialOfferDetailPage: React.FC = () => {
 
               {/* Book Button */}
               <Link
-                to={`/booking?offerId=${offer.id}`}
+                to={buildOfferSearchUrl(offer)}
                 className="block w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-cyan-700 hover:to-blue-700 transition shadow-lg hover:shadow-xl text-center mb-3"
               >
-                Book This Offer
+                Search Flights for This Offer
               </Link>
               <p className="text-xs text-center text-gray-500">
                 Limited availability - Book now to secure your spot!

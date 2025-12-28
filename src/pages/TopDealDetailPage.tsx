@@ -21,8 +21,10 @@ import {
   MdPeople,
   MdRoomService,
 } from "react-icons/md";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import { topDeals } from "../data/mockData";
+import { getAirportCode, getSmartDepartureDate, getSmartReturnDate } from "../utils/airportLookup";
+import type { Deal } from "../types";
 
 type ImageCategory = "exterior" | "rooms" | "dining" | "amenities" | "pool" | "spa";
 
@@ -32,9 +34,33 @@ interface DealImage {
   title: string;
 }
 
+// Helper function to build flight search URL from deal
+const buildDealSearchUrl = (deal: Deal): string => {
+  const departureDate = getSmartDepartureDate();
+  const returnDate = getSmartReturnDate(departureDate);
+  const destinationCode = getAirportCode(deal.name, deal.country);
+
+  const params = new URLSearchParams({
+    tripType: 'return',
+    from: 'ACC', // Default origin - could be made dynamic based on user location
+    to: destinationCode,
+    departureDate: departureDate,
+    returnDate: returnDate,
+    adults: '1',
+    children: '0',
+    infants: '0',
+    travelClass: 'ECONOMY',
+    dealId: deal.id,
+    suggestedPrice: deal.price.toString(),
+  });
+
+  return `/flights?${params.toString()}`;
+};
+
 const TopDealDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
   const [activeImageCategory, setActiveImageCategory] = useState<ImageCategory>("exterior");
 
   // Find the deal from all categories
@@ -260,10 +286,10 @@ const TopDealDetailPage: React.FC = () => {
               </span>
             </div>
             <Link
-              to={`/booking?dealId=${deal.id}`}
+              to={buildDealSearchUrl(deal)}
               className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-cyan-700 hover:to-blue-700 transition shadow-lg hover:shadow-xl text-center"
             >
-              Book This Deal
+              Search Flights for This Deal
             </Link>
           </div>
         </div>
@@ -399,7 +425,7 @@ const TopDealDetailPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold text-gray-900">
-                    {getCurrencySymbol(deal.currency)}{deal.price.toLocaleString()}
+                    {formatPrice(convertCurrency(deal.price, deal.currency))}
                   </span>
                   {deal.perNight && <span className="text-gray-600">/night</span>}
                 </div>
@@ -407,7 +433,7 @@ const TopDealDetailPage: React.FC = () => {
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-green-600">Save 25%</span>
                   <span className="text-xs text-gray-500 line-through">
-                    {getCurrencySymbol(deal.currency)}{Math.round(deal.price * 1.33).toLocaleString()}
+                    {formatPrice(convertCurrency(Math.round(deal.price * 1.33), deal.currency))}
                   </span>
                 </div>
               </div>
@@ -437,10 +463,10 @@ const TopDealDetailPage: React.FC = () => {
 
               {/* Book Button */}
               <Link
-                to={`/booking?dealId=${deal.id}`}
+                to={buildDealSearchUrl(deal)}
                 className="block w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-cyan-700 hover:to-blue-700 transition shadow-lg hover:shadow-xl text-center mb-3"
               >
-                Book Now
+                Search Flights for This Deal
               </Link>
               <p className="text-xs text-center text-gray-500">
                 Free cancellation up to 24 hours before arrival

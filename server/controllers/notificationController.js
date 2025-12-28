@@ -1,5 +1,5 @@
 // server/controllers/notificationController.js
-
+import '../config/env.js'; // Load environment variables first
 import { db } from '../config/firebase.js';
 import webpush from 'web-push';
 

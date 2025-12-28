@@ -54,7 +54,9 @@ const HeroSearch: React.FC = () => {
   >("economy");
 
   // Multi-city segments state
-  const [multiCitySegments, setMultiCitySegments] = useState<MultiCitySegment[]>([]);
+  const [multiCitySegments, setMultiCitySegments] = useState<
+    MultiCitySegment[]
+  >([]);
 
   // Set default dates for hotel check-in (tomorrow) and check-out (day after tomorrow)
   const tomorrow = new Date();
@@ -122,6 +124,7 @@ const HeroSearch: React.FC = () => {
   const toRef = useRef<HTMLDivElement>(null);
   const passengerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const returnCalendarRef = useRef<HTMLDivElement>(null);
   const hotelRef = useRef<HTMLDivElement>(null);
   const checkInRef = useRef<HTMLDivElement>(null);
   const checkOutRef = useRef<HTMLDivElement>(null);
@@ -450,7 +453,9 @@ const HeroSearch: React.FC = () => {
         );
 
         if (invalidSegment || multiCitySegments.length < 2) {
-          toast.error("Please complete all flight segments with airports and dates");
+          toast.error(
+            "Please complete all flight segments with airports and dates"
+          );
           return;
         }
 
@@ -761,11 +766,11 @@ const HeroSearch: React.FC = () => {
           "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80')",
       }}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/10 to-blue-100/30"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20"></div>
       <div className="container mx-auto px-4 relative z-10">
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-1 sm:gap-2 lg:gap-4 mb-6 sm:mb-8 border-b px-2 sm:px-4 lg:px-8 pb-3 sm:pb-4">
+        {/* Tabs - Overlapping the white card */}
+        <div className="flex justify-center mb-0 max-w-5xl mx-auto relative z-20">
+          <div className="inline-flex bg-white rounded-md p-1 gap-1 shadow-lg translate-y-3">
             {[
               { id: "flight", icon: Plane, label: "Book a flight" },
               { id: "visa", icon: FileText, label: "Visa" },
@@ -775,18 +780,21 @@ const HeroSearch: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition text-sm ${
                   activeTab === tab.id
-                    ? "bg-cyan-50 text-cyan-700"
-                    : "text-gray-500 hover:bg-gray-50"
+                    ? "bg-cyan-50 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
-                <tab.icon className="w-5 h-5" />
+                <tab.icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
+        </div>
 
+        {/* White Card Container */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 pt-14 pb-8 max-w-5xl mx-auto min-h-[300px]">
           {/* FLIGHT TAB */}
           {activeTab === "flight" && (
             <>
@@ -797,243 +805,255 @@ const HeroSearch: React.FC = () => {
                   />
                 </div>
               ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 relative">
-                {/* From */}
-                <div className="relative" ref={fromRef}>
-                  <div
-                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
-                    onClick={() => {
-                      setShowFromDropdown(!showFromDropdown);
-                      setShowToDropdown(false);
-                      setShowPassengerDropdown(false);
-                      setActiveCalendar(null);
-                    }}
-                  >
-                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
-                      From
-                      {locationLoading && (
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-cyan-500"></div>
-                      )}
-                    </label>
-                    <div className="font-semibold text-base sm:text-lg">
-                      {locationLoading
-                        ? "Detecting location..."
-                        : formData.from?.city || "Select City"}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-500 truncate">
-                      {locationLoading
-                        ? "Finding nearest airport..."
-                        : formData.from?.code
-                        ? `${
-                            formData.from.code
-                          }, ${formData.from.name.substring(0, 25)}...`
-                        : ""}
-                    </div>
-                  </div>
-                  {showFromDropdown && (
-                    <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
-                      <div className="p-3 border-b">
-                        <input
-                          type="text"
-                          placeholder="Search airports and cities..."
-                          value={searchFrom}
-                          onChange={(e) =>
-                            handleFromSearchChange(e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="overflow-y-auto max-h-80">
-                        {fromLoading ? (
-                          <div className="p-3 text-center text-gray-500">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
-                            Searching...
-                          </div>
-                        ) : searchFrom.length === 0 ? (
-                          <div className="p-3 text-center text-gray-500">
-                            Start typing to search airports and cities...
-                          </div>
-                        ) : !Array.isArray(fromAirports) || fromAirports.length === 0 ? (
-                          <div className="p-3 text-center text-gray-500">
-                            No airports found
-                          </div>
-                        ) : (
-                          fromAirports.map((airport) => (
-                            <div
-                              key={`${airport.iataCode}-${airport.subType}`}
-                              onClick={() =>
-                                handleSelectFrom({
-                                  code: airport.iataCode,
-                                  name: airport.name,
-                                  city: airport.address.cityName,
-                                  country: airport.address.countryCode,
-                                })
-                              }
-                              className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
-                            >
-                              <div className="font-semibold text-gray-900">
-                                {airport.name}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {airport.iataCode} - {airport.address.cityName},{" "}
-                                {airport.address.countryCode}
-                              </div>
-                            </div>
-                          ))
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5 relative">
+                  {/* From */}
+                  <div className="relative" ref={fromRef}>
+                    <div
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:ring-2 hover:ring-cyan-400 transition cursor-pointer h-full"
+                      onClick={() => {
+                        setShowFromDropdown(!showFromDropdown);
+                        setShowToDropdown(false);
+                        setShowPassengerDropdown(false);
+                        setActiveCalendar(null);
+                      }}
+                    >
+                      <label className="text-xs text-gray-500 block mb-1 font-medium flex items-center gap-1">
+                        From
+                        {locationLoading && (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-cyan-500"></div>
                         )}
+                      </label>
+                      <div className="font-semibold text-sm">
+                        {locationLoading
+                          ? "Detecting..."
+                          : formData.from?.city || "Select City"}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {locationLoading
+                          ? "Finding airport..."
+                          : formData.from?.code
+                          ? `${
+                              formData.from.code
+                            }, ${formData.from.name.substring(0, 20)}...`
+                          : ""}
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* To */}
-                <div className="relative" ref={toRef}>
-                  <div
-                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer relative border-2 border-transparent hover:border-cyan-200"
-                    onClick={() => {
-                      setShowToDropdown(!showToDropdown);
-                      setShowFromDropdown(false);
-                      setShowPassengerDropdown(false);
-                      setActiveCalendar(null);
-                    }}
-                  >
-                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium">
-                      To
-                    </label>
-                    <div className="font-semibold text-base sm:text-lg">
-                      {formData.to?.city || "Select City"}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-500 truncate">
-                      {formData.to?.code
-                        ? `${formData.to.code}, ${formData.to.name.substring(
-                            0,
-                            25
-                          )}...`
-                        : ""}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSwapLocations();
-                    }}
-                    className="hidden md:flex absolute -left-6 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-md hover:shadow-lg hover:bg-cyan-50 transition group z-10 border-2 border-gray-200"
-                    aria-label="Swap locations"
-                  >
-                    <ArrowLeftRight className="w-4 h-4 text-gray-600 group-hover:text-cyan-600" />
-                  </button>
-                  {showToDropdown && (
-                    <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
-                      <div className="p-3 border-b">
-                        <input
-                          type="text"
-                          placeholder="Search airports and cities..."
-                          value={searchTo}
-                          onChange={(e) => handleToSearchChange(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="overflow-y-auto max-h-80">
-                        {toLoading ? (
-                          <div className="p-3 text-center text-gray-500">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
-                            Searching...
-                          </div>
-                        ) : searchTo.length === 0 ? (
-                          <div className="p-3 text-center text-gray-500">
-                            Start typing to search airports and cities...
-                          </div>
-                        ) : !Array.isArray(toAirports) || toAirports.length === 0 ? (
-                          <div className="p-3 text-center text-gray-500">
-                            No airports found
-                          </div>
-                        ) : (
-                          toAirports.map((airport) => (
-                            <div
-                              key={`${airport.iataCode}-${airport.subType}`}
-                              onClick={() =>
-                                handleSelectTo({
-                                  code: airport.iataCode,
-                                  name: airport.name,
-                                  city: airport.address.cityName,
-                                  country: airport.address.countryCode,
-                                })
-                              }
-                              className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
-                            >
-                              <div className="font-semibold text-gray-900">
-                                {airport.name}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {airport.iataCode} - {airport.address.cityName},{" "}
-                                {airport.address.countryCode}
-                              </div>
+                    {showFromDropdown && (
+                      <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
+                        <div className="p-3 border-b">
+                          <input
+                            type="text"
+                            placeholder="Search airports and cities..."
+                            value={searchFrom}
+                            onChange={(e) =>
+                              handleFromSearchChange(e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-80">
+                          {fromLoading ? (
+                            <div className="p-3 text-center text-gray-500">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
+                              Searching...
                             </div>
-                          ))
-                        )}
+                          ) : searchFrom.length === 0 ? (
+                            <div className="p-3 text-center text-gray-500">
+                              Start typing to search airports and cities...
+                            </div>
+                          ) : !Array.isArray(fromAirports) ||
+                            fromAirports.length === 0 ? (
+                            <div className="p-3 text-center text-gray-500">
+                              No airports found
+                            </div>
+                          ) : (
+                            fromAirports.map((airport) => (
+                              <div
+                                key={`${airport.iataCode}-${airport.subType}`}
+                                onClick={() =>
+                                  handleSelectFrom({
+                                    code: airport.iataCode,
+                                    name: airport.name,
+                                    city: airport.address.cityName,
+                                    country: airport.address.countryCode,
+                                  })
+                                }
+                                className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
+                              >
+                                <div className="font-semibold text-gray-900">
+                                  {airport.name}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {airport.iataCode} -{" "}
+                                  {airport.address.cityName},{" "}
+                                  {airport.address.countryCode}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* To */}
+                  <div className="relative" ref={toRef}>
+                    <div
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:ring-2 hover:ring-cyan-400 transition cursor-pointer h-full relative"
+                      onClick={() => {
+                        setShowToDropdown(!showToDropdown);
+                        setShowFromDropdown(false);
+                        setShowPassengerDropdown(false);
+                        setActiveCalendar(null);
+                      }}
+                    >
+                      <label className="text-xs text-gray-500 block mb-1 font-medium">
+                        To
+                      </label>
+                      <div className="font-semibold text-sm">
+                        {formData.to?.city || "Select City"}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {formData.to?.code
+                          ? `${formData.to.code}, ${formData.to.name.substring(
+                              0,
+                              20
+                            )}...`
+                          : ""}
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Departure Date */}
-                <div className="relative" ref={calendarRef}>
-                  <div
-                    className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
-                    onClick={() => {
-                      setActiveCalendar("departure");
-                      setShowFromDropdown(false);
-                      setShowToDropdown(false);
-                      setShowPassengerDropdown(false);
-                    }}
-                  >
-                    <label className="text-xs sm:text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Departure Date
-                    </label>
-                    <div className="font-semibold text-base sm:text-lg">
-                      {formatDateDisplay(formData.departureDate).date}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-500">
-                      {formatDateDisplay(formData.departureDate).day}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSwapLocations();
+                      }}
+                      className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 bg-white p-1.5 rounded-full shadow-md hover:shadow-lg hover:bg-cyan-50 transition group z-10 border border-gray-300"
+                      aria-label="Swap locations"
+                    >
+                      <ArrowLeftRight className="w-3 h-3 text-gray-600 group-hover:text-cyan-600" />
+                    </button>
+                    {showToDropdown && (
+                      <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-2 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-96 overflow-hidden">
+                        <div className="p-3 border-b">
+                          <input
+                            type="text"
+                            placeholder="Search airports and cities..."
+                            value={searchTo}
+                            onChange={(e) =>
+                              handleToSearchChange(e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-80">
+                          {toLoading ? (
+                            <div className="p-3 text-center text-gray-500">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
+                              Searching...
+                            </div>
+                          ) : searchTo.length === 0 ? (
+                            <div className="p-3 text-center text-gray-500">
+                              Start typing to search airports and cities...
+                            </div>
+                          ) : !Array.isArray(toAirports) ||
+                            toAirports.length === 0 ? (
+                            <div className="p-3 text-center text-gray-500">
+                              No airports found
+                            </div>
+                          ) : (
+                            toAirports.map((airport) => (
+                              <div
+                                key={`${airport.iataCode}-${airport.subType}`}
+                                onClick={() =>
+                                  handleSelectTo({
+                                    code: airport.iataCode,
+                                    name: airport.name,
+                                    city: airport.address.cityName,
+                                    country: airport.address.countryCode,
+                                  })
+                                }
+                                className="p-3 hover:bg-cyan-50 cursor-pointer transition border-b last:border-b-0"
+                              >
+                                <div className="font-semibold text-gray-900">
+                                  {airport.name}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {airport.iataCode} -{" "}
+                                  {airport.address.cityName},{" "}
+                                  {airport.address.countryCode}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {activeCalendar === "departure" && (
-                    <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
-                      <CalendarPicker
-                        selectedDate={formData.departureDate}
-                        onSelectDate={(date) =>
-                          handleDateSelect(date, "departureDate")
-                        }
-                        minDate={today}
-                      />
-                    </div>
-                  )}
-                </div>
 
-                {/* Return Date or Passengers */}
-                {tripType === "return" ? (
+                  {/* Departure Date */}
                   <div className="relative" ref={calendarRef}>
                     <div
-                      className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:ring-2 hover:ring-cyan-400 transition cursor-pointer h-full"
                       onClick={() => {
-                        setActiveCalendar("return");
+                        setActiveCalendar("departure");
                         setShowFromDropdown(false);
                         setShowToDropdown(false);
                         setShowPassengerDropdown(false);
                       }}
                     >
-                      <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                      <label className="text-xs text-gray-500 block mb-1 font-medium flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Departure Date
+                      </label>
+                      <div className="font-semibold text-sm">
+                        {formatDateDisplay(formData.departureDate).date ||
+                          "Select Date"}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {formatDateDisplay(formData.departureDate).day}
+                      </div>
+                    </div>
+                    {activeCalendar === "departure" && (
+                      <div className="fixed sm:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-full sm:left-0 sm:translate-x-0 sm:translate-y-0 mt-0 sm:mt-2 z-[100]">
+                        <CalendarPicker
+                          selectedDate={formData.departureDate}
+                          onSelectDate={(date) =>
+                            handleDateSelect(date, "departureDate")
+                          }
+                          minDate={today}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Return Date */}
+                  <div className="relative" ref={returnCalendarRef}>
+                    <div
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:ring-2 hover:ring-cyan-400 transition cursor-pointer h-full"
+                      onClick={() => {
+                        if (tripType !== "oneWay") {
+                          setActiveCalendar("return");
+                        }
+                        setShowFromDropdown(false);
+                        setShowToDropdown(false);
+                        setShowPassengerDropdown(false);
+                      }}
+                    >
+                      <label className="text-xs text-gray-500 block mb-1 font-medium flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
                         Return Date
                       </label>
-                      <div className="font-semibold text-lg">
-                        {formatDateDisplay(formData.returnDate).date}
+                      <div className="font-semibold text-sm">
+                        {tripType === "oneWay"
+                          ? "One Way"
+                          : formatDateDisplay(formData.returnDate).date ||
+                            "Select Date"}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDateDisplay(formData.returnDate).day}
+                      <div className="text-xs text-gray-400">
+                        {tripType !== "oneWay" &&
+                          formatDateDisplay(formData.returnDate).day}
                       </div>
                     </div>
                     {activeCalendar === "return" && (
@@ -1048,10 +1068,11 @@ const HeroSearch: React.FC = () => {
                       </div>
                     )}
                   </div>
-                ) : (
+
+                  {/* Passengers */}
                   <div className="relative" ref={passengerRef}>
                     <div
-                      className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer border-2 border-transparent hover:border-cyan-200"
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:ring-2 hover:ring-cyan-400 transition cursor-pointer h-full"
                       onClick={() => {
                         setShowPassengerDropdown(!showPassengerDropdown);
                         setShowFromDropdown(false);
@@ -1059,15 +1080,15 @@ const HeroSearch: React.FC = () => {
                         setActiveCalendar(null);
                       }}
                     >
-                      <label className="text-sm text-gray-600 block mb-2 font-medium flex items-center gap-2">
-                        <Users className="w-4 h-4" />
+                      <label className="text-xs text-gray-500 block mb-1 font-medium flex items-center gap-1">
+                        <Users className="w-3 h-3" />
                         Room & Traveler
                       </label>
-                      <div className="font-semibold text-base sm:text-lg">
+                      <div className="font-semibold text-sm">
                         {formData.rooms} Room, {getTotalPassengers()} Traveler
                         {getTotalPassengers() !== 1 ? "s" : ""}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-500">
+                      <div className="text-xs text-gray-400">
                         {formData.passengers.adults} Adult
                         {formData.passengers.children > 0 &&
                           `, ${formData.passengers.children} Child`}
@@ -1180,12 +1201,11 @@ const HeroSearch: React.FC = () => {
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
               )}
 
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-4 md:gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 mt-4 border-t border-gray-200">
+                <div className="flex flex-wrap items-center gap-4">
                   {[
                     { value: "oneWay", label: "One Way" },
                     { value: "return", label: "Return" },
@@ -1202,30 +1222,35 @@ const HeroSearch: React.FC = () => {
                         onChange={() => setTripType(t.value as typeof tripType)}
                         className="w-4 h-4 text-cyan-600 focus:ring-cyan-500"
                       />
-                      <span className="font-medium text-gray-700">
+                      <span className="text-sm font-medium text-gray-700">
                         {t.label}
                       </span>
                     </label>
                   ))}
-                  <select
-                    value={cabinClass}
-                    onChange={(e) =>
-                      setCabinClass(
-                        e.target.value as "economy" | "business" | "firstClass"
-                      )
-                    }
-                    className="border border-gray-200 rounded-lg px-3 py-2 font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white"
-                  >
-                    <option value="economy">Economy</option>
-                    <option value="business">Business</option>
-                    <option value="firstClass">First Class</option>
-                  </select>
+                  <div className="ml-2">
+                    <select
+                      value={cabinClass}
+                      onChange={(e) =>
+                        setCabinClass(
+                          e.target.value as
+                            | "economy"
+                            | "business"
+                            | "firstClass"
+                        )
+                      }
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white hover:border-cyan-400 transition"
+                    >
+                      <option value="economy">Economy</option>
+                      <option value="business">Business</option>
+                      <option value="firstClass">First Class</option>
+                    </select>
+                  </div>
                 </div>
                 <button
                   onClick={handleSearch}
-                  className="w-full lg:w-auto bg-cyan-400 text-white px-8 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-500 transition font-semibold shadow-md hover:shadow-lg"
+                  className="w-full sm:w-auto bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-cyan-700 transition font-semibold shadow-sm hover:shadow-md text-sm"
                 >
-                  <Search className="w-5 h-5" />
+                  <Search className="w-4 h-4" />
                   Search Flight
                 </button>
               </div>
@@ -1311,9 +1336,9 @@ const HeroSearch: React.FC = () => {
               </div>
               <button
                 onClick={handleSearch}
-                className="w-full lg:w-auto bg-cyan-400 text-white px-8 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-500 transition font-semibold shadow-md hover:shadow-lg ml-auto"
+                className="w-full sm:w-auto bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-cyan-700 transition font-semibold shadow-sm hover:shadow-md text-sm ml-auto"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
                 Search Visa
               </button>
             </>
@@ -1342,9 +1367,7 @@ const HeroSearch: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                   {showHotelDropdown && (
-                    <div
-                      className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-1 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-80 overflow-y-auto"
-                    >
+                    <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto top-20 sm:top-full sm:left-0 sm:right-0 mt-0 sm:mt-1 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 max-h-[70vh] sm:max-h-80 overflow-y-auto">
                       {hotelLoading ? (
                         <div className="p-3 text-center text-gray-500">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500 mx-auto mb-2"></div>
@@ -1545,9 +1568,9 @@ const HeroSearch: React.FC = () => {
               </div>
               <button
                 onClick={handleSearch}
-                className="w-full lg:w-auto bg-cyan-400 text-white px-8 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-500 transition font-semibold shadow-md hover:shadow-lg ml-auto"
+                className="w-full sm:w-auto bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-cyan-700 transition font-semibold shadow-sm hover:shadow-md text-sm ml-auto"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
                 Search Hotels
               </button>
             </>
@@ -1701,9 +1724,9 @@ const HeroSearch: React.FC = () => {
               </div>
               <button
                 onClick={handleSearch}
-                className="w-full lg:w-auto bg-cyan-400 text-white px-8 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-500 transition font-semibold shadow-md hover:shadow-lg ml-auto"
+                className="w-full sm:w-auto bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-cyan-700 transition font-semibold shadow-sm hover:shadow-md text-sm ml-auto"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
                 Search Packages
               </button>
             </>

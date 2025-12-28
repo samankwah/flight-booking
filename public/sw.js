@@ -1,6 +1,6 @@
 // Service Worker for Flight Booking App
-const CACHE_NAME = 'flight-booking-v1';
-const RUNTIME_CACHE = 'runtime-cache-v1';
+const CACHE_NAME = 'flight-booking-v3';
+const RUNTIME_CACHE = 'runtime-cache-v3';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -54,18 +54,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API requests - network first, fallback to cache
+  // Admin API requests - NEVER cache (always fresh data)
+  if (url.pathname.startsWith('/api/admin')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // API requests - network first, fallback to cache (GET only)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstStrategy(request));
     return;
   }
 
-  // Static assets - cache first, fallback to network
+  // Static assets - use stale-while-revalidate for better freshness
   if (
     request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'image'
+    request.destination === 'script'
   ) {
+    event.respondWith(staleWhileRevalidateStrategy(request));
+    return;
+  }
+
+  // Images - cache first (they change less frequently)
+  if (request.destination === 'image') {
     event.respondWith(cacheFirstStrategy(request));
     return;
   }
@@ -88,8 +99,8 @@ async function networkFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
 
-    // Cache successful responses
-    if (networkResponse.ok) {
+    // Only cache GET requests (POST/PUT/DELETE can't be cached)
+    if (networkResponse.ok && request.method === 'GET') {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -144,6 +155,33 @@ async function cacheFirstStrategy(request) {
       headers: { 'Content-Type': 'text/plain' },
     });
   }
+}
+
+/**
+ * Stale-While-Revalidate Strategy
+ * Serve from cache immediately, but update cache in background
+ * This ensures users get content fast while still getting updates
+ */
+async function staleWhileRevalidateStrategy(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cachedResponse = await caches.match(request);
+
+  // Fetch fresh version in background
+  const fetchPromise = fetch(request).then((networkResponse) => {
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  }).catch((error) => {
+    console.log('[Service Worker] Network fetch failed:', request.url);
+    return null;
+  });
+
+  // Return cached version immediately if available, otherwise wait for network
+  return cachedResponse || fetchPromise || new Response('Resource not available', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain' },
+  });
 }
 
 // Background sync for offline actions

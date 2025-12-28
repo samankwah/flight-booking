@@ -1,7 +1,7 @@
 // src/components/Footer.tsx
 
 import React from "react";
-import { FaFacebookF, FaXTwitter, FaYoutube } from "react-icons/fa6";
+import { FaFacebookF, FaXTwitter, FaYoutube, FaWhatsapp } from "react-icons/fa6";
 import { Link } from "react-router-dom";
 
 const Footer: React.FC = () => {
@@ -38,25 +38,40 @@ const Footer: React.FC = () => {
               <h4 className="text-base font-semibold mb-3">Socials</h4>
               <div className="flex gap-3">
                 <a
-                  href="#"
+                  href="https://facebook.com/flightbooking"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-white/10 rounded-md flex items-center justify-center hover:bg-cyan-600 transition"
                   aria-label="Facebook"
                 >
                   <FaFacebookF className="w-4 h-4" />
                 </a>
                 <a
-                  href="#"
+                  href="https://twitter.com/flightbooking"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-white/10 rounded-md flex items-center justify-center hover:bg-cyan-600 transition"
                   aria-label="X (Twitter)"
                 >
                   <FaXTwitter className="w-4 h-4" />
                 </a>
                 <a
-                  href="#"
+                  href="https://youtube.com/@flightbooking"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 bg-white/10 rounded-md flex items-center justify-center hover:bg-cyan-600 transition"
                   aria-label="YouTube"
                 >
                   <FaYoutube className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://wa.me/1234567890"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 bg-white/10 rounded-md flex items-center justify-center hover:bg-green-500 transition"
+                  aria-label="WhatsApp"
+                >
+                  <FaWhatsapp className="w-4 h-4" />
                 </a>
               </div>
             </div>

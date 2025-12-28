@@ -3,15 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { MdArrowBack as ArrowLeft, MdArrowForward as ArrowRight, MdPerson as User, MdFlight as Plane, MdCreditCard as CreditCard, MdAirlineSeatReclineNormal as Seat } from "react-icons/md";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../firebase";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { useLocalization } from "../contexts/LocalizationContext";
 import type { FlightResult, Booking } from "../types";
 import type { PaystackResponse } from "../services/paystackService";
-import PaystackProvider from "../components/PaystackProvider.tsx";
-import PaymentForm from "../components/PaymentForm";
+import PaymentStepWithAuth from "../components/PaymentStepWithAuth";
 import SeatSelection, { Seat as SeatType } from "../components/SeatSelection";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { useBookingState } from "../hooks/useBookingState";
+import BookingConfirmationModal from "../components/BookingConfirmationModal";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 // Mock data for payment methods (moved to be accessible)
 const paymentMethods = [
@@ -26,32 +25,85 @@ const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const { convertCurrency, formatPrice, currency } = useLocalization();
 
   // Get flight data from navigation state
   const flightFromState = location.state?.flight as FlightResult | undefined;
   const [selectedFlight, setSelectedFlight] = useState<FlightResult | null>(flightFromState || null);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    firstName: currentUser?.displayName?.split(" ")[0] || "",
-    lastName: currentUser?.displayName?.split(" ")[1] || "",
-    email: currentUser?.email || "",
+    firstName: "",
+    lastName: "",
+    email: "",
     phone: "",
     paymentMethod: "card", // Default to card payment
   });
   const [selectedSeats, setSelectedSeats] = useState<SeatType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationBooking, setConfirmationBooking] = useState<Booking | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const { saveBookingState, loadBookingState, clearBookingState, hasBookingState } = useBookingState();
+
+  // Pre-fill form if user is logged in (optional convenience)
+  useEffect(() => {
+    if (currentUser) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: currentUser.displayName?.split(" ")[0] || prev.firstName,
+        lastName: currentUser.displayName?.split(" ")[1] || prev.lastName,
+        email: currentUser.email || prev.email,
+      }));
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     // Check if flight data was passed via navigation state
     if (!flightFromState) {
-      // No flight data provided, redirect to flight search
-      toast.error("No flight selected. Please search for flights first.");
-      navigate("/flights", { replace: true });
+      // Try to restore from saved booking state
+      const savedState = loadBookingState();
+      if (savedState?.flight) {
+        setSelectedFlight(savedState.flight);
+        setFormData(savedState.passengerInfo);
+        setSelectedSeats(savedState.selectedSeats);
+        setStep(savedState.step);
+        toast("Booking restored - please continue where you left off", { icon: 'ℹ️' });
+      } else {
+        // No flight data provided and no saved state, redirect to flight search
+        toast.error("No flight selected. Please search for flights first.");
+        navigate("/flights", { replace: true });
+      }
     } else {
       setSelectedFlight(flightFromState);
     }
   }, [flightFromState, navigate]);
+
+  // Save booking state whenever it changes (before payment)
+  useEffect(() => {
+    if (selectedFlight && step < 3) {
+      saveBookingState({
+        flight: selectedFlight,
+        passengerInfo: formData,
+        selectedSeats,
+        step
+      });
+    }
+  }, [selectedFlight, formData, selectedSeats, step]);
+
+  // Restore booking state if returning after auth
+  useEffect(() => {
+    if (currentUser && !selectedFlight && hasBookingState()) {
+      const saved = loadBookingState();
+      if (saved) {
+        setSelectedFlight(saved.flight);
+        setFormData(saved.passengerInfo);
+        setSelectedSeats(saved.selectedSeats);
+        setStep(saved.step);
+        toast.success("Booking restored - please continue to payment");
+      }
+    }
+  }, [currentUser]);
 
   // Early return if no flight is selected - prevents rendering errors
   if (!selectedFlight) {
@@ -111,8 +163,9 @@ const BookingPage: React.FC = () => {
 
   const handlePaymentSuccess = async (paystackResponse: PaystackResponse) => {
     // Critical null checks - ensure user and flight data exist
+    // Note: currentUser check moved to PaymentStepWithAuth component
     if (!currentUser) {
-      const errorMsg = "User not logged in. Please sign in and try again.";
+      const errorMsg = "Authentication required. This should not happen - please contact support.";
       setError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -165,9 +218,10 @@ const BookingPage: React.FC = () => {
         throw new Error('Payment verification failed. Your payment may not have been processed. Please contact support with reference: ' + paystackResponse.reference);
       }
 
-      // Calculate total price including seat fees
+      // Calculate total price including seat fees (in user's selected currency)
+      const convertedFlightPrice = convertCurrency(selectedFlight.price, selectedFlight.currency || 'USD');
       const seatFees = selectedSeats.reduce((sum, seat) => sum + (seat.price || 0), 0);
-      const totalPrice = selectedFlight.price + seatFees;
+      const totalPrice = convertedFlightPrice + seatFees;
 
       // Create the booking record
       const newBooking: Booking = {
@@ -186,25 +240,52 @@ const BookingPage: React.FC = () => {
         bookingDate: new Date().toISOString(),
         status: "confirmed",
         totalPrice,
-        currency: selectedFlight.currency || "GHS",
+        currency: currency,
         paymentId: paystackResponse.reference,
         paymentStatus: "paid",
       };
 
       try {
-        const docRef = await addDoc(collection(db, "bookings"), newBooking);
-        console.log("Booking created with ID: ", docRef.id);
+        // Get auth token
+        if (!currentUser) {
+          throw new Error('You must be logged in to complete the booking');
+        }
 
-        // Update the booking with the Firestore ID
-        await updateDoc(doc(db, "bookings", docRef.id), {
-          id: docRef.id,
+        const token = await currentUser.getIdToken();
+
+        // Create booking via backend API
+        const response = await fetch(`${API_BASE_URL}/bookings`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newBooking)
         });
 
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create booking');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create booking');
+        }
+
+        // Set booking data for modal
+        setConfirmationBooking(result.booking);
+        setEmailSent(result.emailSent || false);
+
+        clearBookingState(); // Clear saved state after successful booking
         toast.success("Booking confirmed successfully!", { id: loadingToast });
-        navigate("/confirmation"); // Navigate to a confirmation page
-      } catch (firestoreError) {
-        console.error("Error saving booking to Firestore:", firestoreError);
-        throw new Error('Payment successful but booking creation failed. Please contact support with reference: ' + paystackResponse.reference);
+
+        // Show confirmation modal
+        setShowConfirmationModal(true);
+      } catch (bookingError) {
+        console.error("Error creating booking:", bookingError);
+        throw new Error(bookingError instanceof Error ? bookingError.message : 'Payment successful but booking creation failed. Please contact support with reference: ' + paystackResponse.reference);
       }
     } catch (err: unknown) {
       let errorMessage = "An unexpected error occurred while saving your booking.";
@@ -269,7 +350,7 @@ const BookingPage: React.FC = () => {
               {selectedFlight?.cabinClass || 'Economy'}
             </p>
             <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
-              Price: {selectedFlight?.currency === 'GHS' ? '₵' : selectedFlight?.currency === 'NGN' ? '₦' : '$'} {selectedFlight?.price?.toLocaleString() || '0'}
+              Price: {formatPrice(convertCurrency(selectedFlight?.price || 0, selectedFlight?.currency || 'USD'))}
             </p>
           </div>
         </div>
@@ -418,28 +499,16 @@ const BookingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <CreditCard className="w-6 h-6" /> Payment Information
-              </h2>
-
-              {selectedFlight && currentUser && (
-                <PaystackProvider>
-                  <PaymentForm
-                    amount={(selectedFlight?.price || 0) + selectedSeats.reduce((sum, seat) => sum + (seat.price || 0), 0)}
-                    currency={selectedFlight?.currency || "GHS"}
-                    email={formData.email}
-                    bookingId={`booking-${Date.now()}`}
-                    passengerName={`${formData.firstName} ${formData.lastName}`}
-                    onPaymentSuccess={handlePaymentSuccess}
-                    onPaymentError={handlePaymentError}
-                    isProcessing={loading}
-                    setIsProcessing={setLoading}
-                  />
-                </PaystackProvider>
-              )}
-            </div>
+          {step === 3 && selectedFlight && (
+            <PaymentStepWithAuth
+              flight={selectedFlight}
+              formData={formData}
+              selectedSeats={selectedSeats}
+              onPaymentSuccess={handlePaymentSuccess}
+              onPaymentError={handlePaymentError}
+              loading={loading}
+              setLoading={setLoading}
+            />
           )}
 
           <div className="flex justify-between mt-8">
@@ -468,6 +537,17 @@ const BookingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Booking Confirmation Modal */}
+      <BookingConfirmationModal
+        booking={confirmationBooking}
+        isOpen={showConfirmationModal}
+        emailSent={emailSent}
+        onClose={() => {
+          setShowConfirmationModal(false);
+          navigate('/my-bookings');
+        }}
+      />
     </div>
   );
 };

@@ -14,7 +14,7 @@ import {
   MdArrowBack,
   MdChevronRight,
 } from "react-icons/md";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import ApplicationModal from "../components/ApplicationModal";
 
 interface University {
@@ -379,6 +379,7 @@ interface UniversityImage {
 const UniversityDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
   const [activeImageCategory, setActiveImageCategory] = useState<ImageCategory>("campus");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -691,7 +692,7 @@ const UniversityDetailPage: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-600">Application Fee</p>
                     <p className="font-semibold text-gray-900">
-                      {getCurrencySymbol(university.currency)}{university.applicationFee}
+                      {formatPrice(convertCurrency(university.applicationFee, university.currency))}
                     </p>
                   </div>
                 </div>

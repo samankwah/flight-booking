@@ -39,7 +39,7 @@ export const initializeTransaction = [
           bookingId: bookingId || '',
           currency: currency.toUpperCase(),
           originalAmount: amount,
-          ...metadata,
+          ...(metadata || {}),
         },
         callback_url: callback_url || `${req.protocol}://${req.get('host')}/api/payments/callback`,
       });

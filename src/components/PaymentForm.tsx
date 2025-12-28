@@ -9,6 +9,7 @@ interface PaymentFormProps {
   email: string;
   bookingId?: string;
   passengerName?: string;
+  language?: string;
   onPaymentSuccess: (response: PaystackResponse) => void;
   onPaymentError: (error: string) => void;
   isProcessing: boolean;
@@ -21,6 +22,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   email,
   bookingId,
   passengerName,
+  language,
   onPaymentSuccess,
   onPaymentError,
   isProcessing,
@@ -93,6 +95,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           bookingId: bookingId || '',
           passengerName: passengerName || '',
           currency: currencyCode,
+          language: language || 'English',
         },
         callback: (response: PaystackResponse) => {
           console.log('✅ Payment callback received:', response);

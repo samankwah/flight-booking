@@ -66,9 +66,9 @@
 //   console.log(`Proxy server listening on port ${PORT}`);
 // });
 
-import dotenv from "dotenv";
+// Load environment variables FIRST before any other imports
+import './config/env.js';
 
-dotenv.config({ path: "./server/.env" });
 
 import express from "express";
 import cors from "cors";
@@ -78,6 +78,8 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import priceAlertRoutes from "./routes/priceAlertRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import { swaggerUi, specs } from "./swagger.js";
@@ -137,6 +139,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/price-alerts", priceAlertRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

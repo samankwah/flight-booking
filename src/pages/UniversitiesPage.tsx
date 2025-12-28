@@ -12,7 +12,7 @@ import {
   MdChevronRight as ChevronRightIcon,
 } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import ApplicationModal from "../components/ApplicationModal";
 
 interface University {
@@ -323,6 +323,7 @@ const universities: University[] = [
 const regions = ["All", "Europe", "America", "Middle East", "Asia", "Oceania"];
 
 const UniversitiesPage: React.FC = () => {
+  const { convertCurrency, formatPrice } = useLocalization();
   const [activeRegion, setActiveRegion] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -540,8 +541,7 @@ const UniversitiesPage: React.FC = () => {
                       <div>
                         <p className="text-xs text-gray-500">App Fee</p>
                         <p className="text-sm font-bold text-gray-900">
-                          {getCurrencySymbol(uni.currency)}
-                          {uni.applicationFee}
+                          {formatPrice(convertCurrency(uni.applicationFee, uni.currency))}
                         </p>
                       </div>
                     </div>

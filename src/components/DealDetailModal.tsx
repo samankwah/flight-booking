@@ -3,7 +3,8 @@ import React, { useEffect } from "react";
 import { MdClose as Close, MdStar as Star, MdLocationOn as MapPin } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import type { Destination, Deal } from "../types";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
+import { getAirportCode, getSmartDepartureDate, getSmartReturnDate } from "../utils/airportLookup";
 
 interface DealDetailModalProps {
   item: Destination | Deal | null;
@@ -13,6 +14,7 @@ interface DealDetailModalProps {
 
 const DealDetailModal: React.FC<DealDetailModalProps> = ({ item, isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -58,16 +60,28 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({ item, isOpen, onClose
   const isDeal = 'rating' in item;
 
   const handleBookNow = () => {
-    // For now, navigate to flights page with search parameters
-    // In the future, you could convert offers/deals to flight bookings
-    navigate('/flights', {
-      state: {
-        searchParams: {
-          destination: item.name,
-          country: item.country
-        }
-      }
+    const departureDate = getSmartDepartureDate();
+    const returnDate = getSmartReturnDate(departureDate);
+    const destinationCode = getAirportCode(item.name, item.country);
+
+    const isDeal = 'rating' in item;
+
+    const params = new URLSearchParams({
+      tripType: 'return',
+      from: 'ACC',
+      to: destinationCode,
+      departureDate: departureDate,
+      returnDate: returnDate,
+      adults: '1',
+      children: '0',
+      infants: '0',
+      travelClass: 'ECONOMY',
+      [isDeal ? 'dealId' : 'offerId']: item.id,
+      suggestedPrice: item.price.toString(),
     });
+
+    navigate(`/flights?${params.toString()}`);
+    onClose();
   };
 
   return (
@@ -180,7 +194,7 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({ item, isOpen, onClose
                   {isDeal && item.perNight ? "Per Night" : "Starting from"}
                 </p>
                 <p className="text-2xl md:text-3xl font-bold text-gray-900">
-                  {getCurrencySymbol(item.currency)}{item.price.toLocaleString()}
+                  {formatPrice(convertCurrency(item.price, item.currency))}
                 </p>
               </div>
               {isDeal && item.perNight && (

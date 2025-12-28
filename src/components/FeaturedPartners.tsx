@@ -1,7 +1,4 @@
 import React from "react";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay } from "swiper/modules";
-import "swiper/css";
 
 const featuredAirlines = [
   // Global majors
@@ -81,7 +78,7 @@ const FeaturedPartners: React.FC = () => {
   };
 
   return (
-    <section className="py-16 bg-white dark:bg-gray-900">
+    <section className="py-16 bg-white dark:bg-gray-900 overflow-hidden">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl md:text-4xl font-bold text-center mb-3 text-gray-900 dark:text-white">
           Featured Partners
@@ -90,37 +87,75 @@ const FeaturedPartners: React.FC = () => {
           Domestic & International Flight Partner for you
         </p>
 
-        <Swiper
-          modules={[Autoplay]}
-          spaceBetween={15}
-          slidesPerView={3}
-          loop={true}
-          autoplay={{ delay: 2500, disableOnInteraction: false }}
-          breakpoints={{
-            640: { slidesPerView: 4, spaceBetween: 15 },
-            768: { slidesPerView: 5, spaceBetween: 15 },
-            1024: { slidesPerView: 6, spaceBetween: 15 },
-          }}
-          className="py-0"
-        >
-          {featuredAirlines.map((airline) => (
-            <SwiperSlide key={airline.iataCode} className="flex justify-center">
-              <div className="flex items-center justify-center h-20 w-full">
-                <img
-                  src={getAirlineLogoUrl(airline.iataCode)}
-                  alt={airline.name}
-                  className="max-h-16 max-w-full w-auto object-contain transition-transform duration-300 hover:scale-110 cursor-pointer"
-                  onError={(e) =>
-                    handleImageError(e, airline.iataCode, airline.name)
-                  }
-                  loading="lazy"
-                  title={airline.name}
-                />
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
+        {/* Infinite Scroll Container */}
+        <div className="relative w-full">
+          {/* Gradient Overlays */}
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white dark:from-gray-900 to-transparent z-10 pointer-events-none"></div>
+
+          {/* Scrolling Track */}
+          <div className="flex overflow-hidden">
+            <div className="flex animate-scroll hover:pause-animation">
+              {/* First set of logos */}
+              {featuredAirlines.map((airline, index) => (
+                <div
+                  key={`${airline.iataCode}-1-${index}`}
+                  className="flex-shrink-0 mx-3 flex items-center justify-center h-20 w-32"
+                >
+                  <img
+                    src={getAirlineLogoUrl(airline.iataCode)}
+                    alt={airline.name}
+                    className="max-h-16 max-w-full w-auto object-contain opacity-90 hover:opacity-100 transition-all duration-300 cursor-pointer hover:scale-105"
+                    onError={(e) =>
+                      handleImageError(e, airline.iataCode, airline.name)
+                    }
+                    loading="lazy"
+                    title={airline.name}
+                  />
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {featuredAirlines.map((airline, index) => (
+                <div
+                  key={`${airline.iataCode}-2-${index}`}
+                  className="flex-shrink-0 mx-3 flex items-center justify-center h-20 w-32"
+                >
+                  <img
+                    src={getAirlineLogoUrl(airline.iataCode)}
+                    alt={airline.name}
+                    className="max-h-16 max-w-full w-auto object-contain opacity-90 hover:opacity-100 transition-all duration-300 cursor-pointer hover:scale-105"
+                    onError={(e) =>
+                      handleImageError(e, airline.iataCode, airline.name)
+                    }
+                    loading="lazy"
+                    title={airline.name}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .animate-scroll {
+          animation: scroll 60s linear infinite;
+        }
+
+        .hover\\:pause-animation:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </section>
   );
 };

@@ -252,7 +252,7 @@ class AmadeusService {
           country: destination.destination, // Will need to enrich this
           airport: destination.destination,
           price: parseFloat(destination.price?.total || 0),
-          currency: destination.price?.currency || 'USD', // Extract currency from API response
+          currency: destination.price?.currency || "USD", // Extract currency from API response
           departureDate: destination.departureDate,
           returnDate: destination.returnDate,
           origin: origin,

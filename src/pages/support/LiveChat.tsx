@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MdSend as Send, MdChat as MessageCircle, MdPerson as User, MdAccessTime as Clock, MdCheck as Check } from "react-icons/md";
+import {
+  MdSend as Send,
+  MdChat as MessageCircle,
+  MdPerson as User,
+  MdAccessTime as Clock,
+  MdCheck as Check,
+} from "react-icons/md";
 
 const LiveChat: React.FC = () => {
   const [messages, setMessages] = useState([
@@ -71,21 +77,21 @@ const LiveChat: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-8">
             {/* Chat Window */}
-            <div className="lg:w-2/3">
+            <div className="lg:w-2/3 w-full">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden">
                 {/* Chat Header */}
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                        <MessageCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                        <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                       </div>
                       <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                           Live Chat Support
                         </h1>
                         <div className="flex items-center gap-2">
@@ -96,22 +102,23 @@ const LiveChat: React.FC = () => {
                                 : "bg-gray-400"
                             }`}
                           />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             Support Agent •{" "}
                             {agentStatus === "online" ? "Online now" : "Away"}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       <Clock className="w-4 h-4" />
-                      <span>Avg. response time: 2 min</span>
+                      <span className="hidden sm:inline">Avg. response time: 2 min</span>
+                      <span className="sm:hidden">2 min response</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Messages Container */}
-                <div className="h-[500px] overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900/50">
+                <div className="h-[400px] sm:h-[450px] md:h-[500px] overflow-y-auto p-3 sm:p-4 md:p-6 bg-gray-50 dark:bg-gray-900/50">
                   <div className="space-y-4">
                     {messages.map((message) => (
                       <div
@@ -123,7 +130,7 @@ const LiveChat: React.FC = () => {
                         }`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                          className={`max-w-[85%] sm:max-w-[75%] md:max-w-[70%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                             message.sender === "user"
                               ? "bg-cyan-500 text-white rounded-br-none"
                               : "bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none border border-gray-200 dark:border-gray-600"
@@ -169,21 +176,21 @@ const LiveChat: React.FC = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-                  <form onSubmit={handleSendMessage} className="flex gap-3">
+                <div className="p-3 sm:p-4 md:p-6 border-t border-gray-200 dark:border-gray-700">
+                  <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
                     <input
                       type="text"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type your message here..."
-                      className="flex-1 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Type your message..."
+                      className="flex-1 px-3 py-2 sm:px-4 sm:py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
                     />
                     <button
                       type="submit"
-                      className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+                      className="p-2.5 sm:p-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center flex-shrink-0"
+                      aria-label="Send message"
                     >
-                      <Send className="w-5 h-5" />
-                      Send
+                      <Send className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                   </form>
                 </div>
@@ -191,41 +198,41 @@ const LiveChat: React.FC = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="lg:w-1/3">
-              <div className="space-y-6">
+            <div className="lg:w-1/3 w-full">
+              <div className="space-y-4 md:space-y-6">
                 {/* Quick Actions */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 md:p-6 shadow-lg">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">
                     Quick Actions
                   </h3>
-                  <div className="space-y-3">
-                    <button className="w-full px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <div className="space-y-2 md:space-y-3">
+                    <button className="w-full px-3 py-2 sm:px-4 sm:py-3 text-left text-sm sm:text-base rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       📋 Request booking modification
                     </button>
-                    <button className="w-full px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <button className="w-full px-3 py-2 sm:px-4 sm:py-3 text-left text-sm sm:text-base rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       💰 Check refund status
                     </button>
-                    <button className="w-full px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <button className="w-full px-3 py-2 sm:px-4 sm:py-3 text-left text-sm sm:text-base rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       🧳 Baggage inquiry
                     </button>
                   </div>
                 </div>
 
                 {/* Support Info */}
-                <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-white">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-4 sm:p-5 md:p-6 text-white">
+                  <div className="flex items-center gap-3 mb-3 md:mb-4">
                     <div className="p-2 bg-white/20 rounded-lg">
-                      <User className="w-6 h-6" />
+                      <User className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold">Support Agent</h3>
-                      <p className="opacity-90">Sarah Johnson</p>
+                      <h3 className="text-lg sm:text-xl font-semibold">Support Agent</h3>
+                      <p className="opacity-90 text-sm sm:text-base">Sarah Johnson</p>
                     </div>
                   </div>
-                  <p className="mb-4 opacity-90">
+                  <p className="mb-3 md:mb-4 opacity-90 text-sm sm:text-base">
                     Average rating: <span className="font-semibold">4.8/5</span>
                   </p>
-                  <div className="text-sm opacity-80">
+                  <div className="text-xs sm:text-sm opacity-80">
                     <p>• 24/7 availability</p>
                     <p>• 2 min average response time</p>
                     <p>• 98% satisfaction rate</p>
@@ -233,24 +240,24 @@ const LiveChat: React.FC = () => {
                 </div>
 
                 {/* Alternative Contact */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 md:p-6 shadow-lg">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">
                     Other Ways to Contact
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     <a
                       href="/support/contact"
-                      className="block px-4 py-3 rounded-lg border border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors"
+                      className="block px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base rounded-lg border border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors"
                     >
                       📧 Send an Email
                     </a>
                     <a
                       href="/support/faq"
-                      className="block px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="block px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       ❓ Browse FAQ
                     </a>
-                    <button className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <button className="w-full px-3 py-2 sm:px-4 sm:py-3 text-left text-sm sm:text-base rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                       📞 Call: +1 (800) 123-4567
                     </button>
                   </div>

@@ -71,36 +71,36 @@ const FAQ: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Frequently Asked Questions
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-6 sm:mb-8">
             Find answers to common questions about booking, payments, and more.
           </p>
 
           {/* Search Bar */}
-          <div className="relative mb-8">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="relative mb-6 sm:mb-8">
+            <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search for questions..."
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
 
           {/* FAQ Categories */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {filteredFAQs.map((category, categoryIndex) => (
               <div
                 key={categoryIndex}
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
               >
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                <div className="p-4 sm:p-5 md:p-6 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
                     {category.category}
                   </h2>
                 </div>
@@ -111,12 +111,12 @@ const FAQ: React.FC = () => {
                     const isOpen = openIndex === faqIndex;
 
                     return (
-                      <div key={index} className="p-6">
+                      <div key={index} className="p-4 sm:p-5 md:p-6">
                         <button
                           onClick={() => setOpenIndex(isOpen ? null : faqIndex)}
                           className="flex items-center justify-between w-full text-left"
                         >
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-white pr-4">
+                          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white pr-3 sm:pr-4">
                             {item.question}
                           </h3>
                           {isOpen ? (
@@ -127,8 +127,8 @@ const FAQ: React.FC = () => {
                         </button>
 
                         {isOpen && (
-                          <div className="mt-4 animate-expand">
-                            <p className="text-gray-600 dark:text-gray-300">
+                          <div className="mt-3 sm:mt-4 animate-expand">
+                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                               {item.answer}
                             </p>
                           </div>
@@ -142,22 +142,22 @@ const FAQ: React.FC = () => {
           </div>
 
           {/* Contact CTA */}
-          <div className="mt-8 p-6 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-xl text-white">
-            <h3 className="text-xl font-semibold mb-2">Still need help?</h3>
-            <p className="mb-4 opacity-90">
+          <div className="mt-6 sm:mt-8 p-4 sm:p-5 md:p-6 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-xl text-white">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">Still need help?</h3>
+            <p className="mb-3 sm:mb-4 opacity-90 text-sm sm:text-base">
               Can't find what you're looking for? Our support team is ready to
               help.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
               <a
                 href="/support/contact"
-                className="px-6 py-2 bg-white text-cyan-600 font-medium rounded-lg hover:bg-cyan-50 transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-white text-cyan-600 font-medium rounded-lg hover:bg-cyan-50 transition-colors text-center"
               >
                 Contact Us
               </a>
               <a
                 href="/support/chat"
-                className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors text-center"
               >
                 Live Chat
               </a>

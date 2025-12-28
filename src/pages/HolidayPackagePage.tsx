@@ -19,10 +19,12 @@ import {
   HolidayPackageSearchParams,
 } from "../services/amadeusService";
 import LoadingWrapper from "../components/LoadingWrapper";
+import { useLocalization } from "../contexts/LocalizationContext";
 
 const HolidayPackagePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { convertCurrency, formatPrice } = useLocalization();
 
   const [packages, setPackages] = useState<HolidayPackage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,10 +98,6 @@ const HolidayPackagePage: React.FC = () => {
         return 0;
     }
   });
-
-  const formatPrice = (price: number, currency: string) => {
-    return `${currency} ${price.toLocaleString()}`;
-  };
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -266,7 +264,7 @@ const HolidayPackagePage: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-3xl font-bold text-cyan-600 mb-1">
-                            {formatPrice(pkg.totalPrice, pkg.currency)}
+                            {formatPrice(convertCurrency(pkg.totalPrice, pkg.currency))}
                           </div>
                           <div className="text-sm text-gray-500">per person</div>
                         </div>
@@ -287,7 +285,7 @@ const HolidayPackagePage: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-sm text-gray-600">
-                          {formatPrice(pkg.hotel.pricePerNight, pkg.hotel.currency)} per night •
+                          {formatPrice(convertCurrency(pkg.hotel.pricePerNight, pkg.hotel.currency))} per night •
                           {pkg.hotel.amenities.slice(0, 3).join(', ')}
                           {pkg.hotel.amenities.length > 3 && '...'}
                         </div>
@@ -360,7 +358,7 @@ const HolidayPackagePage: React.FC = () => {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="text-center mb-4">
                           <div className="text-2xl font-bold text-gray-900 mb-1">
-                            {formatPrice(pkg.totalPrice, pkg.currency)}
+                            {formatPrice(convertCurrency(pkg.totalPrice, pkg.currency))}
                           </div>
                           <div className="text-sm text-gray-600">Per person</div>
                         </div>

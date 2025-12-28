@@ -45,10 +45,23 @@ export default defineConfig({
         secure: false,
       },
     },
+    // Disable caching in development
+    headers: {
+      'Cache-Control': 'no-store',
+    },
   },
   build: {
     sourcemap: true,
     minify: 'esbuild',
     chunkSizeWarningLimit: 1000,
+    // Generate content hash for proper cache busting
+    rollupOptions: {
+      output: {
+        // Add hash to chunk filenames for cache busting
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]',
+      },
+    },
   },
 });

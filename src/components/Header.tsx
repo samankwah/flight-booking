@@ -10,64 +10,19 @@ import {
 import { Menu as HeadlessMenu, Transition } from "@headlessui/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useLocalization, countries } from "../contexts/LocalizationContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
-interface Country {
-  code: string;
-  name: string;
-  flag: string;
-  label: string;
-}
-
-const countries: Country[] = [
-  {
-    code: "gha",
-    name: "Ghana",
-    flag: "https://flagcdn.com/32x24/gh.png",
-    label: "English (GH)",
-  },
-  {
-    code: "us",
-    name: "USA",
-    flag: "https://flagcdn.com/32x24/us.png",
-    label: "English (US)",
-  },
-  {
-    code: "gb",
-    name: "UK",
-    flag: "https://flagcdn.com/32x24/gb.png",
-    label: "English (UK)",
-  },
-  {
-    code: "de",
-    name: "Germany",
-    flag: "https://flagcdn.com/32x24/de.png",
-    label: "Deutsch",
-  },
-  {
-    code: "fr",
-    name: "France",
-    flag: "https://flagcdn.com/32x24/fr.png",
-    label: "Français",
-  },
-  {
-    code: "jp",
-    name: "Japan",
-    flag: "https://flagcdn.com/32x24/jp.png",
-    label: "日本語",
-  },
-];
-
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]);
   const [mobileDropdowns, setMobileDropdowns] = useState({
     support: false,
     language: false,
   });
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const { currentUser, loading } = useAuth();
+  const { selectedCountry, setSelectedCountry, currency, currencySymbol } = useLocalization();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -189,7 +144,7 @@ const Header: React.FC = () => {
                 Explore
               </Link>
 
-              {/* KEEP ONLY THIS LANGUAGE SELECTOR */}
+              {/* Language & Currency Selector */}
               <HeadlessMenu as="div" className="relative">
                 <HeadlessMenu.Button className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-cyan-600 transition font-medium">
                   <img
@@ -198,7 +153,7 @@ const Header: React.FC = () => {
                     className="w-6 h-4 rounded shadow-sm"
                   />
                   <span className="hidden sm:inline">
-                    {selectedCountry.label}
+                    {selectedCountry.label} • {currency}
                   </span>
                   <ChevronDown className="w-4 h-4" />
                 </HeadlessMenu.Button>
@@ -211,7 +166,7 @@ const Header: React.FC = () => {
                   leaveFrom="opacity-100 scale-100"
                   leaveTo="opacity-0 scale-95"
                 >
-                  <HeadlessMenu.Items className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700">
+                  <HeadlessMenu.Items className="absolute right-0 mt-2 w-72 origin-top-right rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
                     {countries.map((country) => (
                       <HeadlessMenu.Item key={country.code}>
                         {({ active }) => (
@@ -219,19 +174,19 @@ const Header: React.FC = () => {
                             onClick={() => setSelectedCountry(country)}
                             className={`flex w-full items-center gap-3 px-4 py-3 text-left ${
                               active ? "bg-gray-50 dark:bg-gray-700" : ""
-                            }`}
+                            } ${selectedCountry.code === country.code ? "bg-cyan-50 dark:bg-cyan-900/20" : ""}`}
                           >
                             <img
                               src={country.flag}
                               alt={country.name}
                               className="w-6 h-4 rounded"
                             />
-                            <div>
+                            <div className="flex-1">
                               <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {country.name}
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {country.label}
+                                {country.label} • {country.currency} ({country.currencySymbol})
                               </div>
                             </div>
                           </button>
@@ -346,7 +301,7 @@ const Header: React.FC = () => {
                 <span className="font-medium">Explore</span>
               </Link>
 
-              {/* LANGUAGE ONLY – Globe Button Removed */}
+              {/* Language & Currency Selector */}
               <div>
                 <button
                   onClick={() => toggleMobileDropdown("language")}
@@ -356,8 +311,12 @@ const Header: React.FC = () => {
                     <img
                       src={selectedCountry.flag}
                       className="w-6 h-4 rounded"
+                      alt={selectedCountry.name}
                     />
-                    <span className="font-medium">Language & Region</span>
+                    <div className="text-left">
+                      <span className="font-medium block">Language & Currency</span>
+                      <span className="text-xs text-gray-500">{selectedCountry.label} • {currency}</span>
+                    </div>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform ${
@@ -367,7 +326,7 @@ const Header: React.FC = () => {
                 </button>
 
                 {mobileDropdowns.language && (
-                  <div className="ml-3 mt-2 space-y-2">
+                  <div className="ml-3 mt-2 space-y-2 max-h-64 overflow-y-auto">
                     {countries.map((country) => (
                       <button
                         key={country.code}
@@ -377,17 +336,17 @@ const Header: React.FC = () => {
                         }}
                         className={`flex w-full items-center gap-3 p-2 rounded ${
                           selectedCountry.code === country.code
-                            ? "bg-blue-50"
+                            ? "bg-cyan-50 dark:bg-cyan-900/20"
                             : "hover:bg-gray-50 dark:hover:bg-gray-800"
                         }`}
                       >
-                        <img src={country.flag} className="w-6 h-4 rounded" />
+                        <img src={country.flag} className="w-6 h-4 rounded" alt={country.name} />
                         <div className="text-left">
                           <div className="font-medium text-sm">
                             {country.name}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {country.label}
+                            {country.label} • {country.currency} ({country.currencySymbol})
                           </div>
                         </div>
                       </button>

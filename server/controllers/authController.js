@@ -1,11 +1,6 @@
 // server/controllers/authController.js
 import jwt from 'jsonwebtoken';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp } from 'firebase-admin/app';
-
-const firebaseApp = initializeApp({
-  projectId: process.env.FIREBASE_PROJECT_ID,
-});
+import { auth } from '../config/firebase.js';
 
 /**
  * Verify Firebase ID token and generate JWT
@@ -22,7 +17,7 @@ export const login = async (req, res) => {
     }
 
     // Verify Firebase ID token
-    const decodedToken = await getAuth(firebaseApp).verifyIdToken(idToken);
+    const decodedToken = await auth.verifyIdToken(idToken);
 
     // Generate JWT token
     const jwtToken = jwt.sign(

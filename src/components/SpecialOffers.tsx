@@ -3,13 +3,14 @@ import React, { useState } from "react";
 import { specialOffers } from "../data/mockData";
 import { MdChevronRight as ChevronRight } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { getCurrencySymbol } from "../utils/currency";
+import { useLocalization } from "../contexts/LocalizationContext";
 import DealDetailModal from "./DealDetailModal";
 import type { Destination } from "../types";
 
 const SpecialOffers: React.FC = () => {
   const [selectedOffer, setSelectedOffer] = useState<Destination | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { convertCurrency, formatPrice } = useLocalization();
 
   const handleOfferClick = (offer: Destination) => {
     setSelectedOffer(offer);
@@ -58,7 +59,7 @@ const SpecialOffers: React.FC = () => {
                   {offer.name}
                 </h3>
                 <p className="text-base md:text-lg mt-1 drop-shadow">
-                  Starting from {getCurrencySymbol(offer.currency)}{offer.price.toLocaleString()}
+                  Starting from {formatPrice(convertCurrency(offer.price, offer.currency))}
                 </p>
               </div>
             </div>

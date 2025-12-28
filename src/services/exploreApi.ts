@@ -6,6 +6,7 @@ export interface FlightDestination {
   country: string;
   airport: string;
   price: number;
+  currency: string;
   departureDate: string;
   returnDate: string;
   origin: string;

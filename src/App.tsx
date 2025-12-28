@@ -1,8 +1,11 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
+import ScrollToTopButton from "./components/ScrollToTopButton";
+import WelcomeModal from "./components/WelcomeModal";
 import LoadingWrapper from "./components/LoadingWrapper";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 import NotificationInitializer from "./components/NotificationInitializer";
@@ -13,6 +16,7 @@ import { OfflineIndicator } from "./components/OfflineIndicator";
 // Eagerly loaded components (critical for initial render)
 import HomePage from "./pages/HomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 // Lazy-loaded components (code splitting)
 const ContactUs = lazy(() => import("./pages/support/ContactUs"));
@@ -27,6 +31,7 @@ const HotelSearchPage = lazy(() => import("./pages/HotelSearchPage"));
 const HolidayPackagePage = lazy(() => import("./pages/HolidayPackagePage"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const ConfirmationPage = lazy(() => import("./pages/ConfirmationPage"));
+const MyBookingsPage = lazy(() => import("./pages/MyBookingsPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const SpecialOffersPage = lazy(() => import("./pages/SpecialOffersPage"));
 const SpecialOfferDetailPage = lazy(() => import("./pages/SpecialOfferDetailPage"));
@@ -37,37 +42,33 @@ const UniversityDetailPage = lazy(() => import("./pages/UniversityDetailPage"));
 const VisaResults = lazy(() => import("./pages/VisaResults"));
 const VisaApplication = lazy(() => import("./pages/VisaApplication"));
 const VisaConfirmation = lazy(() => import("./pages/VisaConfirmation"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const CareersPage = lazy(() => import("./pages/CareersPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const RefundPolicyPage = lazy(() => import("./pages/RefundPolicyPage"));
 
-const App: React.FC = () => {
+// Admin components
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const BookingManagement = lazy(() => import("./pages/admin/BookingManagement"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const UniversityManagement = lazy(() => import("./pages/admin/UniversityManagement"));
+const ApplicationManagement = lazy(() => import("./pages/admin/ApplicationManagement"));
+const OfferManagement = lazy(() => import("./pages/admin/OfferManagement"));
+const DealManagement = lazy(() => import("./pages/admin/DealManagement"));
+const ProgramManagement = lazy(() => import("./pages/admin/ProgramManagement"));
+const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const Settings = lazy(() => import("./pages/admin/Settings"));
+
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
-    <Router>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <NotificationInitializer />
-        <Header />
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <NotificationInitializer />
+      {!isAdminRoute && <Header />}
         <Suspense
           fallback={
             <div className="flex items-center justify-center min-h-screen">
@@ -99,13 +100,37 @@ const App: React.FC = () => {
           <Route path="/deal/:id" element={<TopDealDetailPage />} />
           <Route path="/universities" element={<UniversitiesPage />} />
           <Route path="/university/:id" element={<UniversityDetailPage />} />
+          {/* Footer Pages */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/refund" element={<RefundPolicyPage />} />
+          {/* Public booking route - authentication required only at payment */}
+          <Route path="/booking" element={<BookingPage />} />
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/booking" element={<BookingPage />} />{" "}
-            {/* BookingPage is protected */}
             <Route path="/dashboard" element={<DashboardPage />} />{" "}
             {/* Protected Dashboard */}
+            <Route path="/my-bookings" element={<MyBookingsPage />} />
           </Route>
+
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/bookings" element={<BookingManagement />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/offers" element={<OfferManagement />} />
+              <Route path="/admin/deals" element={<DealManagement />} />
+              <Route path="/admin/universities" element={<UniversityManagement />} />
+              <Route path="/admin/applications" element={<ApplicationManagement />} />
+              <Route path="/admin/programs" element={<ProgramManagement />} />
+              <Route path="/admin/analytics" element={<Analytics />} />
+              <Route path="/admin/settings" element={<Settings />} />
+            </Route>
+          </Route>
+
           {/* Support Routes with Layout */}
           <Route
             path="/support"
@@ -148,12 +173,46 @@ const App: React.FC = () => {
           />
         </Routes>
         </Suspense>
-        <Footer />
-        <PWAInstallBanner />
+        {!isAdminRoute && <Footer />}
+        {!isAdminRoute && <WelcomeModal />}
+        {!isAdminRoute && <PWAInstallBanner />}
         <PWAUpdateNotification />
         <OfflineIndicator />
         <CacheDebugger />
+        {!isAdminRoute && <ScrollToTopButton />}
       </main>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <Router>
+      <ScrollToTop />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <AppContent />
     </Router>
   );
 };
