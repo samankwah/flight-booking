@@ -45,6 +45,7 @@ class AmadeusService {
               hour12: true,
             }
           ),
+          departureDate: firstSegment.departure.at, // Full ISO date-time string
           arrivalTime: new Date(lastSegment.arrival.at).toLocaleTimeString(
             "en-US",
             {
@@ -53,6 +54,7 @@ class AmadeusService {
               hour12: true,
             }
           ),
+          arrivalDate: lastSegment.arrival.at, // Full ISO date-time string
           duration: duration,
           stops: itinerary.segments.length - 1,
           price: parseFloat(offer.price.total), // Extract numeric price from object
@@ -199,6 +201,7 @@ class AmadeusService {
               hour12: true,
             }
           ),
+          departureDate: firstSegment.departure.at, // Full ISO date-time string
           arrivalTime: new Date(lastSegment.arrival.at).toLocaleTimeString(
             "en-US",
             {
@@ -207,6 +210,7 @@ class AmadeusService {
               hour12: true,
             }
           ),
+          arrivalDate: lastSegment.arrival.at, // Full ISO date-time string
           duration: totalDuration,
           stops: allSegments.length - 1,
           price: parseFloat(offer.price.total),

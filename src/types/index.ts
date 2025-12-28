@@ -128,7 +128,9 @@ export interface FlightResult {
   departureAirport: string; // IATA airport code (e.g., "LHR", "JFK", "LOS")
   arrivalAirport: string; // IATA airport code (e.g., "LHR", "JFK", "ACC")
   departureTime: string;
+  departureDate: string; // ISO date-time string for full departure date/time
   arrivalTime: string;
+  arrivalDate: string; // ISO date-time string for full arrival date/time
   duration: number; // in minutes
   stops: number;
   price: number;

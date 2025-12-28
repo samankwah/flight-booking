@@ -123,13 +123,16 @@ const DashboardPage: React.FC = () => {
               {upcomingBookings.map((booking) => (
                 <div key={booking.id} className="border border-gray-200 dark:border-gray-700 p-4 rounded-lg">
                   <p className="font-semibold text-lg">
-                    {booking.flightDetails.departureAirport.code} to {booking.flightDetails.arrivalAirport.code}
+                    {booking.flightDetails.departureAirport} to {booking.flightDetails.arrivalAirport}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(booking.flightDetails.departureDate).toLocaleDateString()} &bull; {booking.flightDetails.airline.name}
+                    {new Date(booking.flightDetails.departureDate).toLocaleDateString()} at {booking.flightDetails.departureTime}
                   </p>
-                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
-                    {booking.currency} {booking.totalPrice.toLocaleString()}
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    {booking.flightDetails.airline} &bull; {booking.status === 'confirmed' ? '✓ Confirmed' : booking.status}
+                  </p>
+                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mt-2">
+                    {booking.currency === 'GHS' ? '₵' : booking.currency === 'NGN' ? '₦' : '$'} {booking.totalPrice.toLocaleString()}
                   </p>
                 </div>
               ))}
@@ -157,13 +160,16 @@ const DashboardPage: React.FC = () => {
               {pastBookings.map((booking) => (
                 <div key={booking.id} className="border border-gray-200 dark:border-gray-700 p-4 rounded-lg opacity-75">
                   <p className="font-semibold text-lg">
-                    {booking.flightDetails.departureAirport.code} to {booking.flightDetails.arrivalAirport.code}
+                    {booking.flightDetails.departureAirport} to {booking.flightDetails.arrivalAirport}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(booking.flightDetails.departureDate).toLocaleDateString()} &bull; {booking.flightDetails.airline.name}
+                    {new Date(booking.flightDetails.departureDate).toLocaleDateString()} at {booking.flightDetails.departureTime}
                   </p>
-                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
-                    {booking.currency} {booking.totalPrice.toLocaleString()}
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    {booking.flightDetails.airline} &bull; {booking.status === 'confirmed' ? '✓ Confirmed' : booking.status}
+                  </p>
+                  <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mt-2">
+                    {booking.currency === 'GHS' ? '₵' : booking.currency === 'NGN' ? '₦' : '$'} {booking.totalPrice.toLocaleString()}
                   </p>
                 </div>
               ))}
