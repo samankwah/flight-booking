@@ -67,7 +67,7 @@ const Header: React.FC = () => {
     language: false,
   });
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -188,6 +188,24 @@ const Header: React.FC = () => {
               >
                 Explore
               </Link>
+
+              {currentUser && (
+                <Link
+                  to="/dashboard"
+                  className="text-gray-700 dark:text-gray-300 hover:text-cyan-600 transition font-medium"
+                >
+                  Dashboard
+                </Link>
+              )}
+
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-purple-600 dark:text-purple-400 hover:text-purple-700 transition font-medium"
+                >
+                  Admin
+                </Link>
+              )}
 
               {/* KEEP ONLY THIS LANGUAGE SELECTOR */}
               <HeadlessMenu as="div" className="relative">
@@ -345,6 +363,28 @@ const Header: React.FC = () => {
               >
                 <span className="font-medium">Explore</span>
               </Link>
+
+              {/* Dashboard */}
+              {currentUser && (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                >
+                  <span className="font-medium">Dashboard</span>
+                </Link>
+              )}
+
+              {/* Admin */}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-purple-600 dark:text-purple-400"
+                >
+                  <span className="font-medium">Admin Panel</span>
+                </Link>
+              )}
 
               {/* LANGUAGE ONLY – Globe Button Removed */}
               <div>

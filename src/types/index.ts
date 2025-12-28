@@ -444,3 +444,46 @@ export type FlightSearchParams = {
   infants?: number;
   travelClass?: string;
 };
+
+// User role types
+export type UserRole = "user" | "admin" | "superadmin";
+
+// User profile interface
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName?: string;
+  role: UserRole;
+  createdAt: string;
+  lastLogin?: string;
+  isActive: boolean;
+  phoneNumber?: string;
+  photoURL?: string;
+}
+
+// Admin analytics interfaces
+export interface AdminAnalytics {
+  totalUsers: number;
+  totalBookings: number;
+  totalRevenue: number;
+  currency: string;
+  activeUsers: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  cancelledBookings: number;
+  revenueByMonth: RevenueByMonth[];
+  popularDestinations: PopularDestination[];
+  recentBookings: Booking[];
+}
+
+export interface RevenueByMonth {
+  month: string;
+  revenue: number;
+  bookings: number;
+}
+
+export interface PopularDestination {
+  destination: string;
+  bookings: number;
+  revenue: number;
+}

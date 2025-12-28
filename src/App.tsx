@@ -13,6 +13,7 @@ import { OfflineIndicator } from "./components/OfflineIndicator";
 // Eagerly loaded components (critical for initial render)
 import HomePage from "./pages/HomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 // Lazy-loaded components (code splitting)
 const ContactUs = lazy(() => import("./pages/support/ContactUs"));
@@ -28,6 +29,7 @@ const HolidayPackagePage = lazy(() => import("./pages/HolidayPackagePage"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const ConfirmationPage = lazy(() => import("./pages/ConfirmationPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const SpecialOffersPage = lazy(() => import("./pages/SpecialOffersPage"));
 const SpecialOfferDetailPage = lazy(() => import("./pages/SpecialOfferDetailPage"));
 const TopDealsPage = lazy(() => import("./pages/TopDealsPage"));
@@ -105,6 +107,10 @@ const App: React.FC = () => {
             {/* BookingPage is protected */}
             <Route path="/dashboard" element={<DashboardPage />} />{" "}
             {/* Protected Dashboard */}
+          </Route>
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboardPage />} />
           </Route>
           {/* Support Routes with Layout */}
           <Route
