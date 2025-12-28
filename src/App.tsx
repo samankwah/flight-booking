@@ -13,6 +13,7 @@ import { OfflineIndicator } from "./components/OfflineIndicator";
 // Eagerly loaded components (critical for initial render)
 import HomePage from "./pages/HomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 // Lazy-loaded components (code splitting)
 const ContactUs = lazy(() => import("./pages/support/ContactUs"));
@@ -37,6 +38,15 @@ const UniversityDetailPage = lazy(() => import("./pages/UniversityDetailPage"));
 const VisaResults = lazy(() => import("./pages/VisaResults"));
 const VisaApplication = lazy(() => import("./pages/VisaApplication"));
 const VisaConfirmation = lazy(() => import("./pages/VisaConfirmation"));
+
+// Admin components
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminBookings = lazy(() => import("./pages/admin/AdminBookings"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
+const AdminDeals = lazy(() => import("./pages/admin/AdminDeals"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 
 const App: React.FC = () => {
   return (
@@ -105,6 +115,17 @@ const App: React.FC = () => {
             {/* BookingPage is protected */}
             <Route path="/dashboard" element={<DashboardPage />} />{" "}
             {/* Protected Dashboard */}
+          </Route>
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/bookings" element={<AdminBookings />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/offers" element={<AdminOffers />} />
+              <Route path="/admin/deals" element={<AdminDeals />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+            </Route>
           </Route>
           {/* Support Routes with Layout */}
           <Route

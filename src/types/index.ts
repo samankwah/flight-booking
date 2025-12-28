@@ -444,3 +444,74 @@ export type FlightSearchParams = {
   infants?: number;
   travelClass?: string;
 };
+
+// Admin-specific types
+export interface UserData {
+  uid: string;
+  email: string;
+  displayName?: string;
+  role: "user" | "admin";
+  createdAt: string;
+  photoURL?: string;
+  phoneNumber?: string;
+  emailVerified: boolean;
+  lastLoginAt?: string;
+  bookingsCount?: number;
+}
+
+export interface SpecialOffer {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  destination: string;
+  country: string;
+  price: number;
+  currency: string;
+  originalPrice?: number;
+  discount?: number;
+  validFrom: string;
+  validUntil: string;
+  category: "flight" | "hotel" | "package" | "visa";
+  featured: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  terms?: string;
+  highlights?: string[];
+}
+
+export interface TopDeal {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  destination: string;
+  country: string;
+  price: number;
+  currency: string;
+  rating: number;
+  reviews: number;
+  perNight: boolean;
+  category: string;
+  featured: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  amenities?: string[];
+  inclusions?: string[];
+}
+
+export interface AdminStats {
+  totalBookings: number;
+  totalRevenue: number;
+  totalUsers: number;
+  activeOffers: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  cancelledBookings: number;
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  newUsersThisMonth: number;
+  bookingsThisMonth: number;
+}
