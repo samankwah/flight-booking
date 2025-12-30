@@ -1,7 +1,7 @@
 // server/routes/notificationRoutes.js
 
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 import {
   subscribe,
   unsubscribe,
@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(requireAuth);
 
 /**
  * @route   POST /api/notifications/subscribe

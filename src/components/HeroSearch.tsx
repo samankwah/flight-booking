@@ -760,7 +760,7 @@ const HeroSearch: React.FC = () => {
 
   return (
     <section
-      className="relative pb-20 pt-20 bg-cover bg-center bg-no-repeat"
+      className="relative pb-6 lg:pb-20 pt-2 lg:pt-20 bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage:
           "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80')",
@@ -794,7 +794,7 @@ const HeroSearch: React.FC = () => {
         </div>
 
         {/* White Card Container */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 pt-14 pb-8 max-w-5xl mx-auto min-h-[300px]">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 pt-10 pb-8 max-w-5xl mx-auto min-h-[300px]">
           {/* FLIGHT TAB */}
           {activeTab === "flight" && (
             <>

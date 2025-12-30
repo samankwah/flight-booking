@@ -1,6 +1,6 @@
 // server/controllers/bookingController.js
 import { db } from '../config/firebase.js';
-import { sendBookingEmail } from '../services/resendEmailService.js';
+import { sendBookingEmail } from '../services/gmailEmailService.js';
 
 /**
  * Create a new booking

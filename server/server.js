@@ -147,6 +147,51 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// Test PDF generation endpoint (TEMPORARY - Remove after testing)
+app.get('/api/test-pdf', async (req, res) => {
+  try {
+    const { generateFlightTicketPDF } = await import('./services/pdfTicketService.js');
+
+    const mockBooking = {
+      id: 'TEST-12345',
+      passengerInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+1234567890'
+      },
+      flightDetails: {
+        airlineCode: 'BA',
+        airline: 'British Airways',
+        departureAirport: 'ACC',
+        arrivalAirport: 'LHR',
+        departureTime: '2025-01-15T10:00:00Z',
+        arrivalTime: '2025-01-15T16:30:00Z',
+        duration: 390,
+        stops: 0,
+        cabinClass: 'economy',
+        price: 850,
+        returnDepartureTime: '2025-01-22T18:00:00Z',
+        returnArrivalTime: '2025-01-23T06:30:00Z',
+        returnDuration: 450,
+        returnStops: 1
+      },
+      selectedSeats: ['12A'],
+      totalPrice: 1700,
+      currency: 'USD',
+      bookingDate: new Date().toISOString()
+    };
+
+    const pdfBuffer = await generateFlightTicketPDF(mockBooking);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename=test-ticket.pdf');
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    res.status(500).json({ error: error.message, stack: error.stack });
+  }
+});
+
 // API documentation redirect
 app.get("/docs", (req, res) => {
   res.redirect("/api-docs");

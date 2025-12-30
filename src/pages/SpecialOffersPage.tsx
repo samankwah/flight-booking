@@ -24,7 +24,10 @@ const SpecialOffersPage: React.FC = () => {
   const totalPages = Math.ceil(specialOffers.length / offersPerPage);
   const indexOfLastOffer = currentPage * offersPerPage;
   const indexOfFirstOffer = indexOfLastOffer - offersPerPage;
-  const currentOffers = specialOffers.slice(indexOfFirstOffer, indexOfLastOffer);
+  const currentOffers = specialOffers.slice(
+    indexOfFirstOffer,
+    indexOfLastOffer
+  );
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -54,7 +57,7 @@ const SpecialOffersPage: React.FC = () => {
 
           {/* Title Section */}
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
               Special Offers
             </h1>
             <p className="text-gray-600 mt-1 text-sm md:text-base">
@@ -122,7 +125,9 @@ const SpecialOffersPage: React.FC = () => {
                     <div className="flex items-center gap-4 mb-4">
                       <div className="flex items-center gap-1 text-green-600">
                         <MdFlight className="w-4 h-4" />
-                        <span className="text-sm font-medium">Direct Flights</span>
+                        <span className="text-sm font-medium">
+                          Direct Flights
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 text-amber-600">
                         <MdStar className="w-4 h-4" />
@@ -141,7 +146,9 @@ const SpecialOffersPage: React.FC = () => {
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-bold text-gray-900">
-                            {formatPrice(convertCurrency(offer.price, offer.currency))}
+                            {formatPrice(
+                              convertCurrency(offer.price, offer.currency)
+                            )}
                           </span>
                         </div>
                       </div>
@@ -176,81 +183,78 @@ const SpecialOffersPage: React.FC = () => {
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="mt-12 flex items-center justify-center gap-2">
-                  {/* Previous Button */}
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
-                      currentPage === 1
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
-                    }`}
-                  >
-                    <MdChevronLeft className="w-5 h-5" />
-                    <span className="hidden sm:inline">Previous</span>
-                  </button>
+                {/* Previous Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
+                    currentPage === 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
+                  }`}
+                >
+                  <MdChevronLeft className="w-5 h-5" />
+                  <span className="hidden sm:inline">Previous</span>
+                </button>
 
-                  {/* Page Numbers */}
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (pageNumber) => {
-                        // Show first page, last page, current page, and pages around current
-                        const showPage =
-                          pageNumber === 1 ||
-                          pageNumber === totalPages ||
-                          (pageNumber >= currentPage - 1 &&
-                            pageNumber <= currentPage + 1);
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (pageNumber) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage =
+                        pageNumber === 1 ||
+                        pageNumber === totalPages ||
+                        (pageNumber >= currentPage - 1 &&
+                          pageNumber <= currentPage + 1);
 
-                        // Show ellipsis
-                        const showEllipsisBefore =
-                          pageNumber === currentPage - 2 && currentPage > 3;
-                        const showEllipsisAfter =
-                          pageNumber === currentPage + 2 &&
-                          currentPage < totalPages - 2;
+                      // Show ellipsis
+                      const showEllipsisBefore =
+                        pageNumber === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter =
+                        pageNumber === currentPage + 2 &&
+                        currentPage < totalPages - 2;
 
-                        if (showEllipsisBefore || showEllipsisAfter) {
-                          return (
-                            <span
-                              key={pageNumber}
-                              className="px-2 text-gray-400"
-                            >
-                              ...
-                            </span>
-                          );
-                        }
-
-                        if (!showPage) return null;
-
+                      if (showEllipsisBefore || showEllipsisAfter) {
                         return (
-                          <button
-                            key={pageNumber}
-                            onClick={() => handlePageChange(pageNumber)}
-                            className={`w-10 h-10 rounded-lg font-medium transition ${
-                              currentPage === pageNumber
-                                ? "bg-cyan-600 text-white shadow-md"
-                                : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
-                            }`}
-                          >
-                            {pageNumber}
-                          </button>
+                          <span key={pageNumber} className="px-2 text-gray-400">
+                            ...
+                          </span>
                         );
                       }
-                    )}
-                  </div>
 
-                  {/* Next Button */}
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
-                      currentPage === totalPages
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <MdChevronRight className="w-5 h-5" />
-                  </button>
+                      if (!showPage) return null;
+
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => handlePageChange(pageNumber)}
+                          className={`w-10 h-10 rounded-lg font-medium transition ${
+                            currentPage === pageNumber
+                              ? "bg-cyan-600 text-white shadow-md"
+                              : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition ${
+                    currentPage === totalPages
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-cyan-50 hover:border-cyan-600 hover:text-cyan-600"
+                  }`}
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <MdChevronRight className="w-5 h-5" />
+                </button>
               </div>
             )}
           </>
@@ -319,9 +323,7 @@ const SpecialOffersPage: React.FC = () => {
                   <div className="text-cyan-100 text-sm">Bookings</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold mb-1">
-                    4.9
-                  </div>
+                  <div className="text-3xl md:text-4xl font-bold mb-1">4.9</div>
                   <div className="text-cyan-100 text-sm">Customer Rating</div>
                 </div>
                 <div className="text-center">

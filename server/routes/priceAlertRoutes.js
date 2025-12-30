@@ -8,13 +8,13 @@ import {
   deletePriceAlert,
   togglePriceAlert,
 } from '../controllers/priceAlertController.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 import { validate, priceAlertSchema } from '../middleware/validation.js';
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(requireAuth);
 
 /**
  * @swagger

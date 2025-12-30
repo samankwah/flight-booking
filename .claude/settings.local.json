@@ -28,7 +28,9 @@
       "Bash(git branch:*)",
       "Bash(npm uninstall:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(node test-email-send.js:*)",
+      "Bash(npx kill-port 3001)"
     ],
     "deny": [],
     "ask": []

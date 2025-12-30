@@ -3,6 +3,19 @@ import jwt from 'jsonwebtoken';
 import { auth as firebaseAuth, isFirebaseAvailable } from '../config/firebase.js';
 
 /**
+ * @deprecated This file is deprecated. Use authMiddleware.js instead.
+ *
+ * REASON: This middleware has a problematic fallback flow that causes
+ * Firebase ID tokens to be incorrectly verified as JWT tokens, resulting
+ * in 401 authentication errors.
+ *
+ * Migration: Replace `authenticateToken` with `requireAuth` from authMiddleware.js
+ *
+ * DO NOT USE THIS FILE. It is kept temporarily for reference only.
+ */
+console.warn('⚠️  WARNING: auth.js is deprecated. Use authMiddleware.js instead.');
+
+/**
  * JWT Authentication Middleware
  * Verifies Firebase ID tokens or JWT tokens from Authorization header
  *

@@ -176,10 +176,10 @@ const CareersPage: React.FC = () => {
               <span className="text-sm font-semibold">We're Hiring!</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
-              Join Our Team of
-              {/* <span className="block bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent"> */}
-              Travel Enthusiasts
-              {/* </span> */}
+              Join Our Team of Travel Enthusiasts
+              {/* <span className="block bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">
+                
+              </span> */}
             </h1>
             <p className="text-xl md:text-2xl text-cyan-100 leading-relaxed max-w-3xl mx-auto mb-8">
               Help us connect travelers to their dream destinations and build

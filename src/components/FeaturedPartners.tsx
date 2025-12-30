@@ -58,7 +58,9 @@ const FeaturedPartners: React.FC = () => {
     const img = e.currentTarget;
 
     // Track which fallback we're on using a data attribute
-    const attemptedFallbacks = img.dataset.attempted ? parseInt(img.dataset.attempted) : 0;
+    const attemptedFallbacks = img.dataset.attempted
+      ? parseInt(img.dataset.attempted)
+      : 0;
 
     const fallbacks = [
       `https://images.kiwi.com/airlines/128/${iataCode}.png`, // Primary (already loaded)
@@ -100,7 +102,7 @@ const FeaturedPartners: React.FC = () => {
               {featuredAirlines.map((airline, index) => (
                 <div
                   key={`${airline.iataCode}-1-${index}`}
-                  className="flex-shrink-0 mx-3 flex items-center justify-center h-20 w-32"
+                  className="flex-shrink-0 mx-0 flex items-center justify-center h-20 w-32"
                 >
                   <img
                     src={getAirlineLogoUrl(airline.iataCode)}
@@ -149,7 +151,7 @@ const FeaturedPartners: React.FC = () => {
         }
 
         .animate-scroll {
-          animation: scroll 60s linear infinite;
+          animation: scroll 80s linear infinite;
         }
 
         .hover\\:pause-animation:hover {

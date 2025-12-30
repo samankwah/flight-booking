@@ -1,5 +1,6 @@
 // server/services/resendEmailService.js
 import '../config/env.js';
+import { generateFlightTicketPDF, getTicketFilename } from './pdfTicketService.js';
 
 // Resend email service
 let resend = null;
@@ -35,6 +36,7 @@ export const sendBookingEmail = async (booking, status) => {
 
   try {
     let subject, html;
+    let pdfAttachment = null;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const toEmail = booking.passengerInfo?.email || booking.email;
@@ -131,6 +133,13 @@ export const sendBookingEmail = async (booking, status) => {
                 <p style="margin: 5px 0;"><strong>Booking Date:</strong> ${booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p>
               </div>
 
+              <!-- PDF Boarding Pass Notice -->
+              <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 14px; color: #065f46;">
+                  <strong>📎 Your Boarding Pass:</strong> Your flight boarding pass is attached to this email as a PDF. Please download and print it, or save it to your mobile device to present at the airport check-in.
+                </p>
+              </div>
+
               <!-- Important Information -->
               <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
                 <p style="margin: 0; font-size: 14px; color: #92400e;">
@@ -156,6 +165,24 @@ export const sendBookingEmail = async (booking, status) => {
             </div>
           </div>
         `;
+
+        // Generate PDF ticket
+        try {
+          console.log(`Generating PDF ticket for booking ${booking.id}...`);
+          const pdfBuffer = await generateFlightTicketPDF(booking);
+          const filename = getTicketFilename(booking.id);
+
+          pdfAttachment = {
+            filename: filename,
+            content: pdfBuffer,
+            type: 'application/pdf'
+          };
+
+          console.log(`✅ PDF ticket generated successfully: ${filename}`);
+        } catch (pdfError) {
+          console.error('Failed to generate PDF ticket:', pdfError);
+          // Continue without PDF - email will still be sent
+        }
         break;
 
       case 'cancelled':
@@ -197,12 +224,15 @@ export const sendBookingEmail = async (booking, status) => {
         return { success: false, message: 'Invalid status' };
     }
 
-    const result = await resend.emails.send({
+    const emailPayload = {
       from: fromEmail,
       to: toEmail,
       subject,
-      html
-    });
+      html,
+      ...(pdfAttachment && { attachments: [pdfAttachment] })
+    };
+
+    const result = await resend.emails.send(emailPayload);
 
     console.log(`✅ ${status} email sent for booking ${booking.id} to ${toEmail}`, result);
     return { success: true, message: 'Email sent successfully', data: result };

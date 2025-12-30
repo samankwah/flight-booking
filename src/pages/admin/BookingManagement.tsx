@@ -43,12 +43,17 @@ export default function BookingManagement() {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.warn('No current user - skipping fetch');
+        return;
+      }
 
       const token = await currentUser.getIdToken();
       const url = statusFilter === 'all'
         ? `${API_BASE_URL}/admin/bookings?limit=100`
         : `${API_BASE_URL}/admin/bookings?status=${statusFilter}&limit=100`;
+
+      console.log('Fetching bookings from:', url);
 
       const response = await fetch(url, {
         headers: {
@@ -56,17 +61,27 @@ export default function BookingManagement() {
         }
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch bookings');
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to fetch bookings (${response.status})`);
       }
 
       const data = await response.json();
+      console.log('Bookings data received:', data);
+
       if (data.success) {
+        console.log('Setting bookings:', data.bookings.length);
         setBookings(data.bookings);
+      } else {
+        console.error('Response not successful:', data);
+        toast.error('Failed to load bookings: ' + (data.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      toast.error('Failed to load bookings');
+      toast.error('Failed to load bookings: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }

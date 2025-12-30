@@ -1,7 +1,8 @@
 // server/controllers/adminController.js
 import { db, setAdminClaim, disableUser, getUserDetails, listAllUsers } from '../utils/firebaseAdmin.js';
 import admin from 'firebase-admin';
-import { sendBookingEmail, sendApplicationEmail } from '../services/resendEmailService.js';
+import { sendBookingEmail } from '../services/gmailEmailService.js';
+import { sendApplicationEmail } from '../services/resendEmailService.js';
 
 // ==================== BOOKING MANAGEMENT ====================
 

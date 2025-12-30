@@ -109,10 +109,10 @@ const AboutPage: React.FC = () => {
               <span className="text-sm font-semibold">Since 2020</span>
             </div> */}
             <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
-              Making Travel Dreams
-              <span className="block bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">
-                Come True
-              </span>
+              Making Travel Dreams Come True
+              {/* <span className="block bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">
+                
+              </span> */}
             </h1>
             <p className="text-xl md:text-2xl text-cyan-100 leading-relaxed max-w-3xl mx-auto">
               Your trusted partner for seamless flight booking experiences

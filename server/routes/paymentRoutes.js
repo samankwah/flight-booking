@@ -1,6 +1,6 @@
 import express from 'express';
 import { createPaymentLimiter } from '../middleware/rateLimiter.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 import {
   initializeTransaction,
   verifyTransaction,
@@ -15,13 +15,13 @@ const router = express.Router();
 router.post('/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 
 // Protected payment endpoints - require authentication
-router.post('/initialize', authenticateToken, createPaymentLimiter, initializeTransaction);
+router.post('/initialize', requireAuth, createPaymentLimiter, initializeTransaction);
 
-router.get('/verify/:reference', authenticateToken, createPaymentLimiter, verifyTransaction);
+router.get('/verify/:reference', requireAuth, createPaymentLimiter, verifyTransaction);
 
-router.get('/transaction/:id', authenticateToken, createPaymentLimiter, getTransaction);
+router.get('/transaction/:id', requireAuth, createPaymentLimiter, getTransaction);
 
-router.post('/refund', authenticateToken, createPaymentLimiter, createRefund);
+router.post('/refund', requireAuth, createPaymentLimiter, createRefund);
 
 // Get Paystack public key (for frontend)
 router.get('/config', (req, res) => {
