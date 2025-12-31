@@ -1,4 +1,6 @@
 // src/services/priceAlertApi.ts
+import { getAuth } from "firebase/auth";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export interface PriceAlertData {
@@ -32,17 +34,27 @@ export interface PriceAlert extends PriceAlertData {
 }
 
 /**
- * Get auth token from local storage or session
+ * Get fresh auth token from Firebase
  */
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
 };
 
 /**
  * Create a new price alert
  */
 export const createPriceAlert = async (alertData: PriceAlertData): Promise<PriceAlert> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -69,7 +81,7 @@ export const createPriceAlert = async (alertData: PriceAlertData): Promise<Price
  * Get all price alerts for the current user
  */
 export const getPriceAlerts = async (activeOnly?: boolean): Promise<PriceAlert[]> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -98,7 +110,7 @@ export const getPriceAlerts = async (activeOnly?: boolean): Promise<PriceAlert[]
  * Get a specific price alert
  */
 export const getPriceAlert = async (id: string): Promise<PriceAlert> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -125,7 +137,7 @@ export const updatePriceAlert = async (
   id: string,
   updates: Partial<PriceAlertData>
 ): Promise<PriceAlert> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -152,7 +164,7 @@ export const updatePriceAlert = async (
  * Delete a price alert
  */
 export const deletePriceAlert = async (id: string): Promise<void> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }
@@ -174,7 +186,7 @@ export const deletePriceAlert = async (id: string): Promise<void> => {
  * Toggle a price alert's active status
  */
 export const togglePriceAlert = async (id: string): Promise<{ id: string; active: boolean }> => {
-  const token = getAuthToken();
+  const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
   }

@@ -268,4 +268,138 @@ export const sendCustomEmail = async (to, subject, text, html) => {
   }
 };
 
+/**
+ * Send university application confirmation email with PDF attachments
+ * @param {string} toEmail - Recipient email address
+ * @param {Object} application - Application data
+ * @param {Buffer} applicationFormPDF - Application form PDF buffer
+ * @param {Buffer} paymentReceiptPDF - Payment receipt PDF buffer
+ * @returns {Promise<Object>} Send result
+ */
+export const sendApplicationConfirmationEmail = async (toEmail, application, applicationFormPDF, paymentReceiptPDF) => {
+  if (!emailServiceAvailable || !sgMail) {
+    console.log(`[MOCK] Would send application confirmation email to ${toEmail} for application ${application.id}`);
+    return { success: false, message: 'Email service not available' };
+  }
+
+  try {
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@studyabroad.com';
+
+    const subject = `Application Confirmation - ${application.universityName}`;
+
+    const text = `
+Dear ${application.firstName} ${application.lastName},
+
+Your application to ${application.universityName} has been successfully submitted!
+
+Application Details:
+- Application ID: ${application.id}
+- University: ${application.universityName}
+- Intake Period: ${application.intakePeriod || 'Not specified'}
+- Programs Applied: ${application.programs?.join(', ') || 'Not specified'}
+- Submission Date: ${new Date(application.submittedAt).toLocaleDateString()}
+- Application Fee: GHS ${application.applicationFee || 150} (Paid)
+
+Your application is currently under review. You will receive updates on your application status via email.
+
+Please keep your application form and payment receipt for your records. You can use the Application ID (${application.id}) to check your application status.
+
+ATTACHMENTS:
+- Application_Form_${application.id}.pdf - Your completed application details
+- Payment_Receipt_${application.id}.pdf - Payment confirmation receipt
+
+If you have any questions, please contact our support team.
+
+Best regards,
+Study Abroad Platform Team
+support@studyabroad.com
++233 XX XXX XXXX
+    `;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Application Confirmation</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h1 style="color: #1e40af; text-align: center;">Application Confirmation</h1>
+
+    <p>Dear ${application.firstName} ${application.lastName},</p>
+
+    <p>Your application to <strong>${application.universityName}</strong> has been successfully submitted!</p>
+
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="margin-top: 0; color: #1e40af;">Application Details</h3>
+      <p><strong>Application ID:</strong> ${application.id}</p>
+      <p><strong>University:</strong> ${application.universityName}</p>
+      <p><strong>Intake Period:</strong> ${application.intakePeriod || 'Not specified'}</p>
+      <p><strong>Programs Applied:</strong> ${application.programs?.join(', ') || 'Not specified'}</p>
+      <p><strong>Submission Date:</strong> ${new Date(application.submittedAt).toLocaleDateString()}</p>
+      <p><strong>Application Fee:</strong> GHS ${application.applicationFee || 150} (Paid)</p>
+    </div>
+
+    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0;"><strong>Status:</strong> Your application is currently under review. You will receive updates on your application status via email.</p>
+    </div>
+
+    <p>Please keep your application form and payment receipt for your records. You can use the Application ID <strong>${application.id}</strong> to check your application status.</p>
+
+    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0; font-weight: bold;">📎 Attachments:</p>
+      <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Application_Form_${application.id}.pdf - Your completed application details</li>
+        <li>Payment_Receipt_${application.id}.pdf - Payment confirmation receipt</li>
+      </ul>
+    </div>
+
+    <p>If you have any questions, please contact our support team.</p>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+    <p style="text-align: center; color: #6b7280; font-size: 14px;">
+      Best regards,<br>
+      <strong>Study Abroad Platform Team</strong><br>
+      support@studyabroad.com<br>
+      +233 XX XXX XXXX
+    </p>
+  </div>
+</body>
+</html>
+    `;
+
+    const msg = {
+      to: toEmail,
+      from: fromEmail,
+      subject,
+      text,
+      html,
+      attachments: [
+        {
+          content: applicationFormPDF.toString('base64'),
+          filename: `Application_Form_${application.id}.pdf`,
+          type: 'application/pdf',
+          disposition: 'attachment'
+        },
+        {
+          content: paymentReceiptPDF.toString('base64'),
+          filename: `Payment_Receipt_${application.id}.pdf`,
+          type: 'application/pdf',
+          disposition: 'attachment'
+        }
+      ]
+    };
+
+    await sgMail.send(msg);
+    console.log(`✅ Application confirmation email sent to ${toEmail} for application ${application.id}`);
+
+    return { success: true, message: 'Application confirmation email sent successfully' };
+  } catch (error) {
+    console.error('Application confirmation email send error:', error);
+    return { success: false, message: error.message };
+  }
+};
+
 export { emailServiceAvailable };

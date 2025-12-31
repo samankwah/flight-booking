@@ -5,7 +5,26 @@
  * Handles browser push notifications and Firebase Cloud Messaging
  */
 
+import { getAuth } from 'firebase/auth';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Get fresh auth token from Firebase
+ */
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
+};
 
 /**
  * Check if notifications are supported
@@ -160,11 +179,14 @@ export const saveSubscriptionToBackend = async (
   userId: string
 ): Promise<boolean> => {
   try {
+    const token = await getAuthToken();
+    if (!token) return false;
+
     const response = await fetch(`${API_BASE_URL}/notifications/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         subscription,

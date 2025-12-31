@@ -80,6 +80,11 @@ import priceAlertRoutes from "./routes/priceAlertRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
+import universityRoutes from "./routes/universityRoutes.js";
+import visaRoutes from "./routes/visaRoutes.js";
+import hotelRoutes from "./routes/hotelRoutes.js";
+import holidayRoutes from "./routes/holidayRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import { swaggerUi, specs } from "./swagger.js";
@@ -141,6 +146,11 @@ app.use("/api/price-alerts", priceAlertRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/universities", universityRoutes);
+app.use("/api/visa-applications", visaRoutes);
+app.use("/api/hotel-bookings", hotelRoutes);
+app.use("/api/holiday-package-bookings", holidayRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

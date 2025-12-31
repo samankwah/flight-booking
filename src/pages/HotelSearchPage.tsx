@@ -335,10 +335,80 @@ const HotelSearchPage: React.FC = () => {
                               per night ({checkInDate} - {checkOutDate})
                             </div>
                             <button
-                              onClick={() => loadHotelOffers(hotel)}
+                              onClick={async () => {
+                                if (!offers) {
+                                  loadHotelOffers(hotel);
+                                  return;
+                                }
+
+                                try {
+                                  // Get authentication token
+                                  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                                  if (!currentUser?.token) {
+                                    alert('Please log in to book this hotel');
+                                    navigate('/auth/login');
+                                    return;
+                                  }
+
+                                  // Prepare booking data
+                                  const bookingData = {
+                                    hotelDetails: {
+                                      id: hotel.hotelId,
+                                      name: hotel.name,
+                                      city: hotel.iataCode,
+                                      country: hotel.address?.countryCode || '',
+                                      checkInDate: checkInDate,
+                                      checkOutDate: checkOutDate,
+                                      roomType: offers.offers[0]?.room?.type || 'Standard Room',
+                                      amenities: [] // Would be populated from hotel data
+                                    },
+                                    guestInfo: {
+                                      firstName: '', // Would be collected in a booking form
+                                      lastName: '',
+                                      email: currentUser.email || '',
+                                      phone: ''
+                                    },
+                                    bookingDetails: {
+                                      adults: adults,
+                                      rooms: rooms,
+                                      nights: Math.ceil((new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) / (1000 * 60 * 60 * 24))
+                                    },
+                                    pricing: {
+                                      totalPrice: parseFloat(offers.offers[0].price.total),
+                                      currency: offers.offers[0].price.currency,
+                                      pricePerNight: parseFloat(offers.offers[0].price.total) / Math.ceil((new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) / (1000 * 60 * 60 * 24))
+                                    }
+                                  };
+
+                                  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/hotel-bookings`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${currentUser.token}`
+                                    },
+                                    body: JSON.stringify(bookingData)
+                                  });
+
+                                  if (!response.ok) {
+                                    throw new Error('Failed to book hotel');
+                                  }
+
+                                  const result = await response.json();
+
+                                  if (result.success) {
+                                    alert('Hotel booked successfully! Check your email for confirmation.');
+                                    navigate('/my-bookings');
+                                  } else {
+                                    throw new Error(result.error || 'Failed to book hotel');
+                                  }
+                                } catch (error) {
+                                  console.error('Error booking hotel:', error);
+                                  alert('Failed to book hotel. Please try again.');
+                                }
+                              }}
                               className="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition text-sm sm:text-base"
                             >
-                              View Details
+                              {offers ? 'Book Now' : 'View Details'}
                             </button>
                           </div>
                         ) : (

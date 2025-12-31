@@ -168,10 +168,74 @@ export default function VisaApplication() {
     }
   };
 
-  const handleSubmit = () => {
-    // Here you would submit the application to your backend
-    console.log("Submitting application:", applicationData);
-    navigate(`/visa/confirmation?applicationId=APP${Date.now()}`);
+  const handleSubmit = async () => {
+    try {
+      // Get authentication token
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser?.token) {
+        alert('Please log in to submit your visa application');
+        return;
+      }
+
+      // Prepare the data for submission
+      const submissionData = {
+        personalInfo: {
+          firstName: applicationData.firstName,
+          lastName: applicationData.lastName,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          dateOfBirth: applicationData.dateOfBirth,
+          gender: applicationData.gender,
+          nationality: applicationData.nationality,
+          passportNumber: applicationData.passportNumber,
+          passportExpiry: applicationData.passportExpiry
+        },
+        travelDetails: {
+          purpose: applicationData.purpose,
+          destination: applicationData.destination,
+          departureDate: applicationData.departureDate,
+          returnDate: applicationData.returnDate,
+          accommodation: applicationData.accommodation,
+          hostContact: applicationData.accommodation === 'host' ? applicationData.hostContact : undefined
+        },
+        documents: {
+          passportPhoto: applicationData.passportPhoto,
+          applicationPhoto: applicationData.applicationPhoto,
+          supportingDocuments: applicationData.supportingDocuments
+        },
+        paymentInfo: {
+          paymentMethod: applicationData.paymentMethod,
+          cardNumber: applicationData.cardNumber,
+          expiryDate: applicationData.expiryDate,
+          cvv: applicationData.cvv,
+          billingAddress: applicationData.billingAddress
+        }
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/visa-applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.token}`
+        },
+        body: JSON.stringify(submissionData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit visa application');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        navigate(`/visa/confirmation?applicationId=${result.application.id}`);
+      } else {
+        throw new Error(result.error || 'Failed to submit application');
+      }
+    } catch (error) {
+      console.error('Error submitting visa application:', error);
+      alert('Failed to submit visa application. Please try again.');
+    }
   };
 
   const renderStepContent = () => {

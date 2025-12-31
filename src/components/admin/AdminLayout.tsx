@@ -15,7 +15,10 @@ import {
   MdMenu,
   MdClose,
   MdLogout,
-  MdHome
+  MdHome,
+  MdDescription, // For Visa Applications
+  MdHotel, // For Hotel Bookings
+  MdBeachAccess // For Holiday Packages
 } from 'react-icons/md';
 
 export default function AdminLayout() {
@@ -35,15 +38,23 @@ export default function AdminLayout() {
     };
   }, [sidebarOpen]);
 
-  const navItems = [
-    { path: '/admin', icon: MdDashboard, label: 'Dashboard', exact: true },
+  const bookingItems = [
     { path: '/admin/bookings', icon: MdFlightTakeoff, label: 'Flight Bookings' },
+    { path: '/admin/visa-applications', icon: MdDescription, label: 'Visa Applications' },
+    { path: '/admin/hotel-bookings', icon: MdHotel, label: 'Hotel Bookings' },
+    { path: '/admin/holiday-package-bookings', icon: MdBeachAccess, label: 'Holiday Packages' }
+  ];
+
+  const userContentItems = [
     { path: '/admin/users', icon: MdPeople, label: 'Users' },
     { path: '/admin/offers', icon: MdLocalOffer, label: 'Special Offers' },
     { path: '/admin/deals', icon: MdLocalOffer, label: 'Top Deals' },
     { path: '/admin/universities', icon: MdSchool, label: 'Universities' },
     { path: '/admin/applications', icon: MdAssignment, label: 'Study Applications' },
-    { path: '/admin/programs', icon: MdBook, label: 'Study Programs' },
+    { path: '/admin/programs', icon: MdBook, label: 'Study Programs' }
+  ];
+
+  const systemItems = [
     { path: '/admin/analytics', icon: MdAnalytics, label: 'Analytics' },
     { path: '/admin/settings', icon: MdSettings, label: 'Settings' }
   ];
@@ -82,15 +93,39 @@ export default function AdminLayout() {
 
         {/* Navigation */}
         <div className="flex flex-col h-[calc(100vh-4rem)]">
-          <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-            {navItems.map((item) => (
+          <nav className="p-2 space-y-1 overflow-y-auto flex-1">
+            {/* Dashboard */}
+            <NavLink
+              to="/admin"
+              end={true}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-2 rounded-lg transition-all group ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <MdDashboard className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-cyan-600'}`} />
+                  <span className="text-sm font-medium">Dashboard</span>
+                </>
+              )}
+            </NavLink>
+
+            {/* Booking Management Section */}
+            <div className="pt-3 pb-1">
+              <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Booking Management</h3>
+            </div>
+            {bookingItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.exact}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-all group ${
                     isActive
                       ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -99,8 +134,60 @@ export default function AdminLayout() {
               >
                 {({ isActive }) => (
                   <>
-                    <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-cyan-600'}`} />
-                    <span className="font-medium">{item.label}</span>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-cyan-600'}`} />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+
+            {/* User & Content Management Section */}
+            <div className="pt-3 pb-1">
+              <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">User & Content</h3>
+            </div>
+            {userContentItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-all group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-cyan-600'}`} />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+
+            {/* Analytics & Settings Section */}
+            <div className="pt-3 pb-1">
+              <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Analytics & Settings</h3>
+            </div>
+            {systemItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-all group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-cyan-600'}`} />
+                    <span className="text-sm font-medium">{item.label}</span>
                   </>
                 )}
               </NavLink>
@@ -108,23 +195,23 @@ export default function AdminLayout() {
           </nav>
 
           {/* Bottom Section - Fixed at bottom */}
-          <div className="p-4 space-y-1 border-t border-gray-200 bg-white">
+          <div className="p-2 space-y-1 border-t border-gray-200 bg-white">
             {/* Return to Main Site */}
             <button
               onClick={() => navigate('/')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
             >
-              <MdHome className="w-5 h-5" />
-              <span className="font-medium">Main Site</span>
+              <MdHome className="w-4 h-4" />
+              <span className="text-sm font-medium">Main Site</span>
             </button>
 
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition"
             >
-              <MdLogout className="w-5 h-5" />
-              <span className="font-medium">Logout</span>
+              <MdLogout className="w-4 h-4" />
+              <span className="text-sm font-medium">Logout</span>
             </button>
           </div>
         </div>

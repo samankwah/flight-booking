@@ -209,13 +209,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 mt-6 md:mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6 mt-6 md:mt-8">
         <Link
           to="/admin/bookings"
           className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow"
         >
           <MdFlightTakeoff className="w-6 h-6 md:w-8 md:h-8 mb-2 md:mb-3" />
-          <h3 className="text-base md:text-lg font-semibold mb-1">Manage Bookings</h3>
+          <h3 className="text-base md:text-lg font-semibold mb-1">Flight Bookings</h3>
           <p className="text-xs md:text-sm text-blue-100">
             View and manage flight bookings
           </p>
@@ -234,11 +234,50 @@ export default function AdminDashboard() {
 
         <Link
           to="/admin/analytics"
-          className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow col-span-2 lg:col-span-1"
+          className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow"
         >
           <MdTrendingUp className="w-6 h-6 md:w-8 md:h-8 mb-2 md:mb-3" />
           <h3 className="text-base md:text-lg font-semibold mb-1">View Analytics</h3>
           <p className="text-xs md:text-sm text-green-100">Revenue and booking trends</p>
+        </Link>
+
+        <Link
+          to="/admin/visa-applications"
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow"
+        >
+          <svg className="w-6 h-6 md:w-8 md:h-8 mb-2 md:mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 className="text-base md:text-lg font-semibold mb-1">Visa Applications</h3>
+          <p className="text-xs md:text-sm text-purple-100">
+            Manage visa applications
+          </p>
+        </Link>
+
+        <Link
+          to="/admin/hotel-bookings"
+          className="bg-gradient-to-r from-orange-500 to-red-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow"
+        >
+          <svg className="w-6 h-6 md:w-8 md:h-8 mb-2 md:mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <h3 className="text-base md:text-lg font-semibold mb-1">Hotel Bookings</h3>
+          <p className="text-xs md:text-sm text-orange-100">
+            Manage hotel reservations
+          </p>
+        </Link>
+
+        <Link
+          to="/admin/holiday-package-bookings"
+          className="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-lg p-4 md:p-6 text-white hover:shadow-lg transition-shadow"
+        >
+          <svg className="w-6 h-6 md:w-8 md:h-8 mb-2 md:mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0 9c-1.657 0-3-1.343-3-3m3 3c1.657 0 3-1.343 3-3m-3 3V3" />
+          </svg>
+          <h3 className="text-base md:text-lg font-semibold mb-1">Holiday Packages</h3>
+          <p className="text-xs md:text-sm text-teal-100">
+            Manage holiday bookings
+          </p>
         </Link>
       </div>
     </div>

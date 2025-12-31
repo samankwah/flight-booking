@@ -1,10 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MdClose, MdCheckCircle } from "react-icons/md";
+import { getAuth } from "firebase/auth";
+import paystackService, { PaystackResponse } from "../services/paystackService";
+import toast from "react-hot-toast";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Get fresh auth token from Firebase
+ */
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
+};
 
 interface ApplicationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  university: { id: string; schoolName: string } | null;
+  university: { id: string; name?: string; schoolName?: string } | null;
 }
 
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, university }) => {
@@ -17,18 +39,108 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
     dateOfBirth: "",
     nationality: "",
     passportNumber: "",
+    // Academic details
+    currentEducation: "",
+    gpa: "",
+    previousInstitution: "",
+    universityName: "",
+    graduationYear: "",
+    intakePeriod: "",
+    startDate: "",
+    // Application details
     programs: [] as string[],
     essay: "",
     documents: [] as File[],
+    // Payment
+    applicationFee: 150, // GHS
+    paymentStatus: "pending" as "pending" | "completed",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // University search states
+  const [showInstitutionDropdown, setShowInstitutionDropdown] = useState(false);
+  const [institutionSearchResults, setInstitutionSearchResults] = useState<string[]>([]);
+  const [isSearchingInstitution, setIsSearchingInstitution] = useState(false);
+
+  // Auto-populate university name when modal opens
+  useEffect(() => {
+    if (isOpen && university) {
+      setFormData(prev => ({
+        ...prev,
+        universityName: university.name || university.schoolName
+      }));
+    }
+  }, [isOpen, university]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.institution-search-container')) {
+        setShowInstitutionDropdown(false);
+      }
+    };
+
+    if (showInstitutionDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showInstitutionDropdown]);
 
   if (!isOpen || !university) return null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Handle university search for previous institution
+    if (name === 'previousInstitution') {
+      handleInstitutionSearch(value);
+    }
+  };
+
+  // Search universities for autocomplete
+  const handleInstitutionSearch = async (keyword: string) => {
+    if (keyword.length < 2) {
+      setInstitutionSearchResults([]);
+      setShowInstitutionDropdown(false);
+      setIsSearchingInstitution(false);
+      return;
+    }
+
+    setIsSearchingInstitution(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/universities/search?query=${encodeURIComponent(keyword)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        const results = data.universities.map((uni: { schoolName: string }) => uni.schoolName);
+        setInstitutionSearchResults(results);
+        setShowInstitutionDropdown(results.length > 0);
+      } else {
+        console.error('University search failed:', data.error);
+        setInstitutionSearchResults([]);
+        setShowInstitutionDropdown(false);
+      }
+    } catch (error) {
+      console.error('Error searching universities:', error);
+      setInstitutionSearchResults([]);
+      setShowInstitutionDropdown(false);
+    } finally {
+      setIsSearchingInstitution(false);
+    }
+  };
+
+  // Handle university selection from dropdown
+  const handleInstitutionSelect = (universityName: string) => {
+    setFormData(prev => ({ ...prev, previousInstitution: universityName }));
+    setShowInstitutionDropdown(false);
+    setInstitutionSearchResults([]);
   };
 
   const handleProgramToggle = (program: string) => {
@@ -46,7 +158,30 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
   };
 
   const handleNextStep = () => {
-    if (currentStep < 4) {
+    // Basic validation before allowing next step
+    if (currentStep === 1) {
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.dateOfBirth) {
+        alert('Please fill in all required personal information fields.');
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.nationality || !formData.passportNumber) {
+        alert('Please fill in your nationality and passport number.');
+        return;
+      }
+    } else if (currentStep === 3) {
+      if (!formData.currentEducation || !formData.gpa || !formData.graduationYear || !formData.intakePeriod) {
+        alert('Please fill in all required academic details.');
+        return;
+      }
+    } else if (currentStep === 4) {
+      if (!formData.programs || formData.programs.length === 0 || !formData.essay) {
+        alert('Please select at least one program and write your motivation essay.');
+        return;
+      }
+    }
+
+    if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -57,16 +192,110 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
     }
   };
 
+  const handlePayment = async () => {
+    if (!university) return;
+
+    try {
+      console.log('💳 Starting Paystack payment for application fee...');
+
+      await paystackService.initializePayment({
+        amount: formData.applicationFee,
+        currency: 'GHS',
+        email: formData.email,
+        reference: `application-${university.id}-${Date.now()}`,
+        metadata: {
+          universityId: university.id,
+          universityName: university.name || university.schoolName,
+          applicantName: `${formData.firstName} ${formData.lastName}`,
+          applicationType: 'university',
+          intakePeriod: formData.intakePeriod,
+        },
+        callback: (response: PaystackResponse) => {
+          console.log('✅ Application payment successful:', response);
+
+          if (response.status === 'success') {
+            // Update payment status
+            setFormData(prev => ({
+              ...prev,
+              paymentStatus: 'completed'
+            }));
+
+            toast.success('Payment completed successfully! You can now submit your application.');
+          } else {
+            toast.error('Payment was not successful. Please try again.');
+          }
+        },
+        onClose: () => {
+          console.log('⚠️ Payment modal closed');
+          toast.info('Payment was cancelled. You can try again when ready.');
+        },
+      });
+    } catch (error) {
+      console.error('❌ Payment initialization failed:', error);
+      toast.error('Failed to initialize payment. Please try again.');
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!university) return;
+
+    // Final validation before submission
+    if (formData.paymentStatus !== 'completed') {
+      alert('Please complete the application fee payment first.');
+      setCurrentStep(6); // Go to payment step
+      return;
+    }
+
+    // Ensure all required documents are uploaded
+    if (!formData.documents || formData.documents.length === 0) {
+      alert('Please upload at least one document before submitting.');
+      setCurrentStep(5); // Go to documents step
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    setIsSuccess(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required. Please log in to submit your application.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/applications/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          universityId: university.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsSuccess(true);
+        console.log('✅ Application submitted successfully:', data.applicationId);
+
+        // Close modal after 3 seconds to show success message
+        setTimeout(() => {
+          onClose();
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Failed to submit application');
+      }
+    } catch (error) {
+      console.error('❌ Application submission failed:', error);
+      alert(`Failed to submit application: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const programs = ["Computer Science", "Business", "Engineering", "Medicine", "Law", "Arts"];
-  const totalSteps = 4;
+  const intakePeriods = ["Fall 2025", "Spring 2025", "Fall 2026", "Spring 2026"];
+  const totalSteps = 6;
   const progressPercent = (currentStep / totalSteps) * 100;
 
   return (
@@ -76,7 +305,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 md:p-7 flex items-start justify-between">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Application Form</h2>
-            <p className="text-white/90 text-sm md:text-base">{university.schoolName}</p>
+            <p className="text-white/90 text-sm md:text-base">{university.name || university.schoolName}</p>
           </div>
           <button
             onClick={onClose}
@@ -236,8 +465,173 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
                 </div>
               )}
 
-              {/* Step 3: Academic Interests */}
+              {/* Step 3: Academic Details */}
               {currentStep === 3 && (
+                <div className="space-y-5">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6">Academic Details</h3>
+
+                  {/* University Name (Auto-populated) */}
+                  <div>
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                      University Applying To
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.universityName}
+                      readOnly
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm md:text-base cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Auto-filled from the university page</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                      Current Education Level *
+                    </label>
+                    <select
+                      name="currentEducation"
+                      value={formData.currentEducation}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base cursor-pointer"
+                    >
+                      <option value="">Select your current education</option>
+                      <option value="high_school">High School</option>
+                      <option value="college">College/University</option>
+                      <option value="masters">Master's Degree</option>
+                      <option value="phd">PhD</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                        GPA/Grade *
+                      </label>
+                      <input
+                        type="text"
+                        name="gpa"
+                        value={formData.gpa}
+                        onChange={handleInputChange}
+                        placeholder="3.8 or A+"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                        Graduation Year *
+                      </label>
+                      <input
+                        type="number"
+                        name="graduationYear"
+                        value={formData.graduationYear}
+                        onChange={handleInputChange}
+                        placeholder="2024"
+                        min="2020"
+                        max="2030"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative institution-search-container">
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                      Previous Institution
+                    </label>
+                    <input
+                      type="text"
+                      name="previousInstitution"
+                      value={formData.previousInstitution}
+                      onChange={handleInputChange}
+                      onFocus={() => {
+                        if (formData.previousInstitution.length >= 2 && institutionSearchResults.length > 0) {
+                          setShowInstitutionDropdown(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay hiding dropdown to allow clicks on options
+                        setTimeout(() => setShowInstitutionDropdown(false), 200);
+                      }}
+                      placeholder="Start typing to search universities..."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base"
+                    />
+
+                    {/* Loading indicator */}
+                    {isSearchingInstitution && (
+                      <div className="absolute right-3 top-9 text-gray-400">
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                      </div>
+                    )}
+
+                    {/* Autocomplete Dropdown */}
+                    {showInstitutionDropdown && institutionSearchResults.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {institutionSearchResults.map((universityName, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleInstitutionSelect(universityName)}
+                            className="w-full px-4 py-2 text-left hover:bg-blue-50 hover:text-blue-700 transition-colors text-sm md:text-base border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-600">🎓</span>
+                              <span>{universityName}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* No results message */}
+                    {showInstitutionDropdown && institutionSearchResults.length === 0 && formData.previousInstitution.length >= 2 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <span>❌</span>
+                          <span className="text-sm">No universities found. You can still type your institution name manually.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-500 mt-1">
+                      Start typing to see university suggestions, or enter your institution name manually.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                        Intake Period *
+                      </label>
+                      <select
+                        name="intakePeriod"
+                        value={formData.intakePeriod}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base cursor-pointer"
+                      >
+                        <option value="">Select intake period</option>
+                        {intakePeriods.map((period) => (
+                          <option key={period} value={period}>{period}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                        Expected Start Date
+                      </label>
+                      <input
+                        type="date"
+                        name="startDate"
+                        value={formData.startDate}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-sm md:text-base"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Academic Interests */}
+              {currentStep === 4 && (
                 <div className="space-y-5">
                   <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6">Academic Interests</h3>
 
@@ -291,8 +685,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
                 </div>
               )}
 
-              {/* Step 4: Documents */}
-              {currentStep === 4 && (
+              {/* Step 5: Documents */}
+              {currentStep === 5 && (
                 <div className="space-y-5">
                   <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6">Upload Documents</h3>
 
@@ -339,6 +733,58 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
                   </div>
                 </div>
               )}
+
+              {/* Step 6: Payment */}
+              {currentStep === 6 && (
+                <div className="space-y-5">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6">Application Fee Payment</h3>
+
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">💰</div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-2">Application Fee</h4>
+                      <div className="text-3xl font-bold text-green-600 mb-2">
+                        GHS {formData.applicationFee}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        One-time non-refundable application processing fee
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-5">
+                    <h5 className="font-semibold text-gray-900 mb-2">Payment Information:</h5>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      <li>• Secure payment powered by Paystack</li>
+                      <li>• Multiple payment methods accepted</li>
+                      <li>• Instant confirmation upon successful payment</li>
+                      <li>• Application processing begins after payment</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 md:p-5">
+                    <p className="text-xs md:text-sm text-gray-900">
+                      <span className="font-semibold">Important:</span> Payment must be completed to submit your application.
+                      You will receive a confirmation email with your application details and reference number.
+                    </p>
+                  </div>
+
+                  {/* Payment Status */}
+                  {formData.paymentStatus === 'completed' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <MdCheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-800">Payment Completed</p>
+                          <p className="text-sm text-green-600">Ready to submit application</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             /* Success State */
@@ -350,15 +796,20 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h3>
               <p className="text-sm md:text-base text-gray-600 mb-6 max-w-sm mx-auto">
-                Your application to {university.schoolName} has been successfully submitted. We'll review your
-                application and contact you within 2-3 weeks.
+                Your application to {university.name || university.schoolName} has been successfully submitted! Check your email for your application form and payment receipt. We'll review your application and contact you within 2-3 weeks.
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-5 text-left">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-5 text-left mb-6">
                 <p className="text-xs md:text-sm text-gray-900">
                   <span className="font-semibold block mb-2">Next Steps:</span>
                   Check your email for confirmation and application reference number
                 </p>
               </div>
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
             </div>
           )}
         </div>
@@ -373,13 +824,34 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
             Back
           </button>
 
-          <button
-            onClick={currentStep === totalSteps ? handleSubmit : handleNextStep}
-            disabled={isSubmitting || isSuccess}
-            className="px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-medium rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-95"
-          >
-            {isSubmitting ? "Submitting..." : currentStep === totalSteps ? "Submit Application" : "Next"}
-          </button>
+          {currentStep === 6 ? (
+            // Payment step
+            formData.paymentStatus === 'completed' ? (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || isSuccess}
+                className="px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-medium rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-95"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Application"}
+              </button>
+            ) : (
+              <button
+                onClick={handlePayment}
+                className="px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-medium rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-colors active:scale-95"
+              >
+                Pay GHS {formData.applicationFee}
+              </button>
+            )
+          ) : (
+            // Regular next button for steps 1-5
+            <button
+              onClick={handleNextStep}
+              disabled={isSubmitting || isSuccess}
+              className="px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-medium rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-95"
+            >
+              Next
+            </button>
+          )}
         </div>
       </div>
     </div>

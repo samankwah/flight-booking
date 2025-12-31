@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MdNotifications, MdNotificationsOff, MdCheck, MdClose } from 'react-icons/md';
+import { getAuth } from 'firebase/auth';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -11,6 +12,23 @@ import {
 } from '../utils/notifications';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+/**
+ * Get fresh auth token from Firebase
+ */
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
+};
 
 interface NotificationPreferencesProps {
   userId?: string;
@@ -39,7 +57,7 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({ userI
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = await getAuthToken();
 
       if (!token) {
         // Load from localStorage if not logged in
@@ -72,7 +90,7 @@ const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({ userI
     try {
       setSaving(true);
       setError(null);
-      const token = localStorage.getItem('authToken');
+      const token = await getAuthToken();
 
       if (!token || !userId) {
         // Save to localStorage if not logged in

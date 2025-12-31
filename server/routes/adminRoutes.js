@@ -53,10 +53,13 @@ router.patch('/universities/:id', adminController.updateUniversity);
 router.delete('/universities/:id', adminController.deleteUniversity);
 router.patch('/universities/:id/featured', adminController.toggleUniversityFeatured);
 
-// ==================== STUDY ABROAD APPLICATION MANAGEMENT ====================
+// ==================== STUDY ABROAD APPLICATION WORKFLOW MANAGEMENT ====================
 router.get('/applications', adminController.getAllApplications);
 router.get('/applications/:id', adminController.getApplication);
 router.patch('/applications/:id/status', adminController.updateApplicationStatus);
+router.patch('/applications/:id/documents/:documentType', adminController.verifyApplicationDocument);
+router.post('/applications/:id/communications', adminController.addApplicationCommunication);
+router.patch('/applications/:id/assign', adminController.assignApplication);
 router.post('/applications/:id/notes', adminController.addApplicationNote);
 router.delete('/applications/:id', adminController.deleteApplication);
 
@@ -66,6 +69,27 @@ router.get('/programs/:id', adminController.getProgram);
 router.post('/programs', adminController.createProgram);
 router.patch('/programs/:id', adminController.updateProgram);
 router.delete('/programs/:id', adminController.deleteProgram);
+
+// ==================== VISA APPLICATION MANAGEMENT ====================
+router.get('/visa-applications', adminController.getAllVisaApplications);
+router.get('/visa-applications/:id', adminController.getVisaApplication);
+router.patch('/visa-applications/:id/status', adminController.updateVisaApplicationStatus);
+router.post('/visa-applications/:id/notes', adminController.addVisaApplicationNote);
+router.delete('/visa-applications/:id', adminController.deleteVisaApplication);
+
+// ==================== HOTEL BOOKING MANAGEMENT ====================
+router.get('/hotel-bookings', adminController.getAllHotelBookings);
+router.get('/hotel-bookings/:id', adminController.getHotelBooking);
+router.patch('/hotel-bookings/:id/status', adminController.updateHotelBookingStatus);
+router.post('/hotel-bookings/:id/notes', adminController.addHotelBookingNote);
+router.delete('/hotel-bookings/:id', adminController.deleteHotelBooking);
+
+// ==================== HOLIDAY PACKAGE BOOKING MANAGEMENT ====================
+router.get('/holiday-package-bookings', adminController.getAllHolidayPackageBookings);
+router.get('/holiday-package-bookings/:id', adminController.getHolidayPackageBooking);
+router.patch('/holiday-package-bookings/:id/status', adminController.updateHolidayPackageBookingStatus);
+router.post('/holiday-package-bookings/:id/notes', adminController.addHolidayPackageBookingNote);
+router.delete('/holiday-package-bookings/:id', adminController.deleteHolidayPackageBooking);
 
 // ==================== EXPORT FUNCTIONALITY ====================
 router.post('/export/bookings', adminController.exportBookings);

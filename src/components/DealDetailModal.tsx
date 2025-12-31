@@ -341,26 +341,16 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-hidden"
-      onClick={onClose}
-      style={{ touchAction: "none" }}
-    >
-      <div
-        className="bg-white rounded-t-3xl md:rounded-2xl max-w-3xl w-full max-h-[90vh] md:max-h-[95vh] overflow-hidden shadow-2xl animate-slideUp flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200">
         {/* Header Image */}
-        <div className="relative h-48 md:h-80 overflow-hidden md:rounded-t-2xl flex-shrink-0">
+        <div className="relative h-48 md:h-64 overflow-hidden rounded-t-2xl flex-shrink-0">
           <img
             src={item.image}
             alt={item.name}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
-          {/* Drag Handle for Mobile */}
-          <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/40 rounded-full" />
 
           {/* Close Button */}
           <button
@@ -385,11 +375,11 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 md:p-6 overflow-y-auto flex-1">
+        {/* Scrollable Content */}
+        <div className="flex-grow overflow-y-auto px-5 md:px-7 py-6 md:py-8">
           {/* Rating (for deals only) */}
           {isDeal && (
-            <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4 pb-3 md:pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-3 md:gap-4 mb-4 pb-4 border-b border-gray-200">
               <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 <span className="text-sm md:text-base font-bold text-gray-900">
@@ -403,11 +393,11 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
           )}
 
           {/* Description */}
-          <div className="mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">
+          <div className="mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3">
               About this destination
             </h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
               {item.description ||
                 `Discover the beauty of ${item.name}, ${item.country}. Experience world-class attractions,
                 stunning scenery, and unforgettable moments in this amazing destination.`}
@@ -415,35 +405,35 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
           </div>
 
           {/* Highlights */}
-          <div className="mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">
+          <div className="mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
               What's included
             </h3>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <li className="flex items-center gap-2 text-sm text-gray-700">
-                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                 Round-trip flights
               </li>
-              <li className="flex items-center gap-2 text-sm text-gray-700">
-                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+              <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                 Airport transfers
               </li>
-              <li className="flex items-center gap-2 text-sm text-gray-700">
-                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+              <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                 Travel insurance
               </li>
-              <li className="flex items-center gap-2 text-sm text-gray-700">
-                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+              <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                 24/7 customer support
               </li>
               {isDeal && (
                 <>
-                  <li className="flex items-center gap-2 text-sm text-gray-700">
-                    <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                     Accommodation
                   </li>
-                  <li className="flex items-center gap-2 text-sm text-gray-700">
-                    <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  <li className="flex items-center gap-3 text-sm md:text-base text-gray-700">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full flex-shrink-0"></span>
                     Daily breakfast
                   </li>
                 </>
@@ -452,13 +442,13 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
           </div>
 
           {/* Price Section */}
-          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-4 mb-4">
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-5 md:p-6">
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-sm text-gray-600 mb-2">
                   {isDeal && item.perNight ? "Per Night" : "Starting from"}
                 </p>
-                <p className="text-2xl md:text-3xl font-bold text-gray-900">
+                <p className="text-3xl md:text-4xl font-bold text-gray-900">
                   {formatPrice(convertCurrency(item.price, item.currency))}
                 </p>
               </div>
@@ -467,22 +457,22 @@ const DealDetailModal: React.FC<DealDetailModalProps> = ({
               )}
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pb-safe">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
-            >
-              Close
-            </button>
-            <button
-              onClick={handleBookNow}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl text-center"
-            >
-              Book Now
-            </button>
-          </div>
+        {/* Fixed Footer */}
+        <div className="border-t border-gray-200 bg-gray-50 px-5 md:px-7 py-4 md:py-5 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-white transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={handleBookNow}
+            className="flex-1 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            Book Now
+          </button>
         </div>
       </div>
     </div>

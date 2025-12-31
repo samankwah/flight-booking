@@ -351,17 +351,23 @@ export const getUserBookings = async (req, res) => {
 // ==================== ANALYTICS ====================
 
 /**
- * Get revenue statistics
+ * Get revenue statistics from all booking types
  * @route GET /api/admin/analytics/revenue
  */
 export const getRevenueStats = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    // Fetch all paid bookings (avoid complex Firestore queries that need indexes)
-    const snapshot = await db.collection('bookings')
-      .where('paymentStatus', '==', 'paid')
-      .get();
+    // Fetch all paid bookings from all collections in parallel
+    const [
+      flightBookingsSnapshot,
+      hotelBookingsSnapshot,
+      holidayPackageBookingsSnapshot
+    ] = await Promise.all([
+      db.collection('bookings').where('paymentStatus', '==', 'paid').get(),
+      db.collection('hotelBookings').where('paymentStatus', '==', 'paid').get(),
+      db.collection('holidayPackageBookings').where('paymentStatus', '==', 'paid').get()
+    ]);
 
     let totalRevenue = 0;
     const revenueByDate = {};
@@ -372,12 +378,28 @@ export const getRevenueStats = async (req, res) => {
     const startDateTime = startDate ? new Date(startDate).getTime() : null;
     const endDateTime = endDate ? new Date(endDate).getTime() : null;
 
-    snapshot.forEach(doc => {
+    // Process flight bookings
+    flightBookingsSnapshot.forEach(doc => {
       const data = doc.data();
+      processBookingData(data, 'bookingDate');
+    });
 
+    // Process hotel bookings
+    hotelBookingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      processBookingData(data, 'bookingDate');
+    });
+
+    // Process holiday package bookings
+    holidayPackageBookingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      processBookingData(data, 'bookingDate');
+    });
+
+    function processBookingData(data, dateField) {
       // Apply date filtering in memory
-      if (data.bookingDate) {
-        const bookingTime = new Date(data.bookingDate).getTime();
+      if (data[dateField]) {
+        const bookingTime = new Date(data[dateField]).getTime();
 
         if (startDateTime && bookingTime < startDateTime) {
           return; // Skip this booking
@@ -394,12 +416,12 @@ export const getRevenueStats = async (req, res) => {
       totalRevenue += price;
 
       // Group by date
-      const date = data.bookingDate ? data.bookingDate.split('T')[0] : 'unknown';
+      const date = data[dateField] ? data[dateField].split('T')[0] : 'unknown';
       revenueByDate[date] = (revenueByDate[date] || 0) + price;
 
       // Group by currency
       revenueByCurrency[currency] = (revenueByCurrency[currency] || 0) + price;
-    });
+    }
 
     res.json({
       success: true,
@@ -420,7 +442,7 @@ export const getRevenueStats = async (req, res) => {
 };
 
 /**
- * Get booking trends
+ * Get booking trends from all booking types
  * @route GET /api/admin/analytics/bookings
  */
 export const getBookingTrends = async (req, res) => {
@@ -431,31 +453,63 @@ export const getBookingTrends = async (req, res) => {
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
     const cutoffTime = cutoffDate.getTime();
 
-    // Fetch all bookings and filter in memory (avoid complex Firestore queries)
-    const snapshot = await db.collection('bookings').get();
+    // Fetch all bookings from all collections in parallel
+    const [
+      flightBookingsSnapshot,
+      visaApplicationsSnapshot,
+      hotelBookingsSnapshot,
+      holidayPackageBookingsSnapshot
+    ] = await Promise.all([
+      db.collection('bookings').get(),
+      db.collection('visaApplications').get(),
+      db.collection('hotelBookings').get(),
+      db.collection('holidayPackageBookings').get()
+    ]);
 
     const bookingsByDate = {};
     const bookingsByStatus = {};
     let filteredCount = 0;
 
-    snapshot.forEach(doc => {
+    // Process flight bookings
+    flightBookingsSnapshot.forEach(doc => {
       const data = doc.data();
+      processBookingTrends(data, 'bookingDate', 'status');
+    });
 
+    // Process visa applications
+    visaApplicationsSnapshot.forEach(doc => {
+      const data = doc.data();
+      processBookingTrends(data, 'submittedAt', 'status');
+    });
+
+    // Process hotel bookings
+    hotelBookingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      processBookingTrends(data, 'bookingDate', 'status');
+    });
+
+    // Process holiday package bookings
+    holidayPackageBookingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      processBookingTrends(data, 'bookingDate', 'status');
+    });
+
+    function processBookingTrends(data, dateField, statusField) {
       // Filter by date in memory
-      if (data.bookingDate) {
-        const bookingTime = new Date(data.bookingDate).getTime();
+      if (data[dateField]) {
+        const bookingTime = new Date(data[dateField]).getTime();
         if (bookingTime < cutoffTime) {
           return; // Skip bookings older than cutoff
         }
       }
 
       filteredCount++;
-      const date = data.bookingDate ? data.bookingDate.split('T')[0] : 'unknown';
-      const status = data.status || 'unknown';
+      const date = data[dateField] ? data[dateField].split('T')[0] : 'unknown';
+      const status = data[statusField] || 'unknown';
 
       bookingsByDate[date] = (bookingsByDate[date] || 0) + 1;
       bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
-    });
+    }
 
     res.json({
       success: true,
@@ -523,26 +577,58 @@ export const getPopularRoutes = async (req, res) => {
 };
 
 /**
- * Get dashboard statistics (summary)
+ * Get dashboard statistics (summary) - aggregates all booking types
  * @route GET /api/admin/analytics/dashboard
  */
 export const getDashboardStats = async (req, res) => {
   try {
-    // Get counts in parallel
-    const [bookingsSnapshot, usersResult] = await Promise.all([
-      db.collection('bookings').get(),
+    // Get counts from all booking collections in parallel
+    const [
+      flightBookingsSnapshot,
+      visaApplicationsSnapshot,
+      hotelBookingsSnapshot,
+      holidayPackageBookingsSnapshot,
+      usersResult
+    ] = await Promise.all([
+      db.collection('bookings').get(), // Flight bookings
+      db.collection('visaApplications').get(),
+      db.collection('hotelBookings').get(),
+      db.collection('holidayPackageBookings').get(),
       listAllUsers(1000)
     ]);
 
-    const bookings = bookingsSnapshot.docs.map(doc => doc.data());
+    const flightBookings = flightBookingsSnapshot.docs.map(doc => doc.data());
+    const visaApplications = visaApplicationsSnapshot.docs.map(doc => doc.data());
+    const hotelBookings = hotelBookingsSnapshot.docs.map(doc => doc.data());
+    const holidayPackageBookings = holidayPackageBookingsSnapshot.docs.map(doc => doc.data());
 
-    // Calculate stats
-    const totalBookings = bookings.length;
-    const totalRevenue = bookings
-      .filter(b => b.paymentStatus === 'paid')
-      .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    // Calculate combined stats
+    const totalBookings =
+      flightBookings.length +
+      visaApplications.length +
+      hotelBookings.length +
+      holidayPackageBookings.length;
+
+    // Calculate total revenue from paid bookings (flight bookings and holiday packages have payment status)
+    const totalRevenue =
+      flightBookings
+        .filter(b => b.paymentStatus === 'paid')
+        .reduce((sum, b) => sum + (b.totalPrice || 0), 0) +
+      hotelBookings
+        .filter(b => b.paymentStatus === 'paid')
+        .reduce((sum, b) => sum + (b.totalPrice || 0), 0) +
+      holidayPackageBookings
+        .filter(b => b.paymentStatus === 'paid')
+        .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+
     const activeUsers = usersResult.users.filter(u => !u.disabled).length;
-    const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+
+    // Calculate pending bookings/applications across all types
+    const pendingBookings =
+      flightBookings.filter(b => b.status === 'pending').length +
+      visaApplications.filter(a => a.status === 'submitted' || a.status === 'under_review').length +
+      hotelBookings.filter(b => b.status === 'confirmed').length +
+      holidayPackageBookings.filter(b => b.status === 'confirmed').length;
 
     res.json({
       success: true,
@@ -551,6 +637,12 @@ export const getDashboardStats = async (req, res) => {
         totalRevenue,
         activeUsers,
         pendingBookings
+      },
+      breakdown: {
+        flightBookings: flightBookings.length,
+        visaApplications: visaApplications.length,
+        hotelBookings: hotelBookings.length,
+        holidayPackageBookings: holidayPackageBookings.length
       }
     });
   } catch (error) {
@@ -912,34 +1004,78 @@ export const toggleDealStatus = async (req, res) => {
 // ==================== UNIVERSITY MANAGEMENT ====================
 
 /**
- * Get all universities
+ * Get all universities with comprehensive profiles
  * @route GET /api/admin/universities
  */
 export const getAllUniversities = async (req, res) => {
   try {
-    const { country, featured, limit = 50 } = req.query;
+    const { country, status, partnership, limit = 50, offset = 0 } = req.query;
 
-    let query = db.collection('universities').orderBy('ranking', 'asc');
+    // Temporarily fetch all universities to avoid index requirements
+    // TODO: Create proper Firestore indexes for production
+    const query = db.collection('universities');
 
-    if (country) {
-      query = query.where('country', '==', country);
-    }
-    if (featured !== undefined) {
-      query = query.where('isFeatured', '==', featured === 'true');
-    }
-
-    query = query.limit(parseInt(limit));
+    // Store filters for in-memory processing
+    let statusFilter = status;
+    let partnershipFilter = partnership;
+    let countryFilter = country;
 
     const snapshot = await query.get();
-    const universities = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    let universities = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        // Extract summary information for list view
+        basicInfo: data.basicInfo || {},
+        academics: {
+          ranking: data.academics?.ranking || {},
+          totalStudents: data.academics?.totalStudents || 0
+        },
+        partnerships: data.partnerships || { isPartnered: false },
+        settings: data.settings || { isActive: true, isFeatured: false },
+        programs: data.programs || { totalPrograms: 0 },
+        // Include full data for detailed view
+        ...data
+      };
+    });
+
+    // Apply filters in memory
+    if (countryFilter) {
+      universities = universities.filter(uni => uni.basicInfo?.country === countryFilter);
+    }
+    if (statusFilter) {
+      if (statusFilter === 'active') {
+        universities = universities.filter(uni => uni.settings?.isActive !== false);
+      } else if (statusFilter === 'inactive') {
+        universities = universities.filter(uni => uni.settings?.isActive === false);
+      }
+    }
+    if (partnershipFilter) {
+      if (partnershipFilter === 'partner') {
+        universities = universities.filter(uni => uni.partnerships?.isPartnered === true);
+      } else if (partnershipFilter === 'non-partner') {
+        universities = universities.filter(uni => uni.partnerships?.isPartnered !== true);
+      }
+    }
+
+    // Sort by created date in memory (descending)
+    universities.sort((a, b) => {
+      const dateA = new Date(a.settings?.createdAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.settings?.createdAt || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+
+    // Apply pagination in memory
+    const startIndex = parseInt(offset);
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedUniversities = universities.slice(startIndex, endIndex);
 
     res.json({
       success: true,
-      universities,
-      total: universities.length
+      universities: paginatedUniversities,
+      total: universities.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     });
   } catch (error) {
     console.error('Get universities error:', error);
@@ -951,7 +1087,7 @@ export const getAllUniversities = async (req, res) => {
 };
 
 /**
- * Get single university by ID
+ * Get single university with full profile by ID
  * @route GET /api/admin/universities/:id
  */
 export const getUniversity = async (req, res) => {
@@ -965,9 +1101,84 @@ export const getUniversity = async (req, res) => {
       });
     }
 
+    const data = doc.data();
+
+    // Structure the comprehensive university profile
+    const university = {
+      id: doc.id,
+      basicInfo: data.basicInfo || {
+        name: '',
+        country: '',
+        city: '',
+        address: '',
+        website: '',
+        phone: '',
+        email: ''
+      },
+      academics: data.academics || {
+        ranking: { world: 0, national: 0, source: '', year: new Date().getFullYear() },
+        accreditations: [],
+        totalStudents: 0,
+        internationalStudents: 0,
+        facultyCount: 0,
+        studentFacultyRatio: ''
+      },
+      facilities: data.facilities || {
+        campusSize: '',
+        library: false,
+        sportsFacilities: false,
+        dormitories: false,
+        diningFacilities: false,
+        medicalCenter: false,
+        wifiCampus: false,
+        description: ''
+      },
+      programs: data.programs || {
+        undergraduate: [],
+        postgraduate: [],
+        phd: [],
+        totalPrograms: 0
+      },
+      fees: data.fees || {
+        undergraduate: { min: 0, max: 0, currency: 'USD' },
+        postgraduate: { min: 0, max: 0, currency: 'USD' },
+        applicationFee: 0,
+        currency: 'USD'
+      },
+      admission: data.admission || {
+        requirements: [],
+        englishProficiency: [],
+        deadlines: { fall: '', spring: '', summer: '' },
+        applicationProcess: ''
+      },
+      partnerships: data.partnerships || {
+        isPartnered: false,
+        agreementType: '',
+        commissionRate: 0,
+        specialBenefits: [],
+        contactPerson: ''
+      },
+      media: data.media || {
+        logo: '',
+        bannerImage: '',
+        gallery: [],
+        virtualTour: '',
+        videos: []
+      },
+      settings: data.settings || {
+        isActive: true,
+        isFeatured: false,
+        featuredPriority: 0,
+        tags: [],
+        targetCountries: [],
+        lastUpdated: new Date().toISOString(),
+        createdAt: data.createdAt || new Date().toISOString()
+      }
+    };
+
     res.json({
       success: true,
-      university: { id: doc.id, ...doc.data() }
+      university
     });
   } catch (error) {
     console.error('Get university error:', error);
@@ -979,21 +1190,87 @@ export const getUniversity = async (req, res) => {
 };
 
 /**
- * Create new university
+ * Create new university with comprehensive profile
  * @route POST /api/admin/universities
  */
 export const createUniversity = async (req, res) => {
   try {
-    const universityData = {
-      ...req.body,
-      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
-      isFeatured: req.body.isFeatured !== undefined ? req.body.isFeatured : false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: req.user.uid
+    const universityData = req.body;
+
+    // Structure the comprehensive university profile
+    const newUniversity = {
+      basicInfo: universityData.basicInfo || {
+        name: universityData.name || '',
+        country: universityData.country || '',
+        city: universityData.city || '',
+        address: '',
+        website: '',
+        phone: '',
+        email: ''
+      },
+      academics: universityData.academics || {
+        ranking: { world: 0, national: 0, source: '', year: new Date().getFullYear() },
+        accreditations: [],
+        totalStudents: 0,
+        internationalStudents: 0,
+        facultyCount: 0,
+        studentFacultyRatio: ''
+      },
+      facilities: universityData.facilities || {
+        campusSize: '',
+        library: false,
+        sportsFacilities: false,
+        dormitories: false,
+        diningFacilities: false,
+        medicalCenter: false,
+        wifiCampus: false,
+        description: ''
+      },
+      programs: universityData.programs || {
+        undergraduate: [],
+        postgraduate: [],
+        phd: [],
+        totalPrograms: 0
+      },
+      fees: universityData.fees || {
+        undergraduate: { min: 0, max: 0, currency: 'USD' },
+        postgraduate: { min: 0, max: 0, currency: 'USD' },
+        applicationFee: 0,
+        currency: 'USD'
+      },
+      admission: universityData.admission || {
+        requirements: [],
+        englishProficiency: [],
+        deadlines: { fall: '', spring: '', summer: '' },
+        applicationProcess: ''
+      },
+      partnerships: universityData.partnerships || {
+        isPartnered: false,
+        agreementType: '',
+        commissionRate: 0,
+        specialBenefits: [],
+        contactPerson: ''
+      },
+      media: universityData.media || {
+        logo: '',
+        bannerImage: '',
+        gallery: [],
+        virtualTour: '',
+        videos: []
+      },
+      settings: {
+        isActive: universityData.settings?.isActive !== undefined ? universityData.settings.isActive : true,
+        isFeatured: universityData.settings?.isFeatured !== undefined ? universityData.settings.isFeatured : false,
+        featuredPriority: universityData.settings?.featuredPriority || 0,
+        tags: universityData.settings?.tags || [],
+        targetCountries: universityData.settings?.targetCountries || [],
+        lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        createdBy: req.user.uid
+      }
     };
 
-    const docRef = await db.collection('universities').add(universityData);
+    const docRef = await db.collection('universities').add(newUniversity);
 
     res.status(201).json({
       success: true,
@@ -1010,19 +1287,27 @@ export const createUniversity = async (req, res) => {
 };
 
 /**
- * Update university
+ * Update university with comprehensive profile
  * @route PATCH /api/admin/universities/:id
  */
 export const updateUniversity = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = {
-      ...req.body,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedBy: req.user.uid
+    const updateData = req.body;
+
+    // Add metadata to the update
+    const metadataUpdate = {
+      'settings.lastUpdated': new Date().toISOString(),
+      'settings.updatedBy': req.user.uid
     };
 
-    await db.collection('universities').doc(id).update(updateData);
+    // Merge the update data with metadata
+    const finalUpdateData = {
+      ...updateData,
+      ...metadataUpdate
+    };
+
+    await db.collection('universities').doc(id).update(finalUpdateData);
 
     res.json({
       success: true,
@@ -1089,111 +1374,8 @@ export const toggleUniversityFeatured = async (req, res) => {
 
 // ==================== STUDY ABROAD APPLICATION MANAGEMENT ====================
 
-/**
- * Get all study abroad applications
- * @route GET /api/admin/applications
- */
-export const getAllApplications = async (req, res) => {
-  try {
-    const { status, universityId, limit = 50, offset = 0 } = req.query;
 
-    let query = db.collection('studyAbroadApplications').orderBy('submittedAt', 'desc');
 
-    if (status) {
-      query = query.where('status', '==', status);
-    }
-    if (universityId) {
-      query = query.where('universityId', '==', universityId);
-    }
-
-    query = query.limit(parseInt(limit)).offset(parseInt(offset));
-
-    const snapshot = await query.get();
-    const applications = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    res.json({
-      success: true,
-      applications,
-      total: applications.length
-    });
-  } catch (error) {
-    console.error('Get applications error:', error);
-    res.status(500).json({
-      error: 'Failed to fetch applications',
-      message: error.message
-    });
-  }
-};
-
-/**
- * Get single application by ID
- * @route GET /api/admin/applications/:id
- */
-export const getApplication = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const doc = await db.collection('studyAbroadApplications').doc(id).get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        error: 'Application not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      application: { id: doc.id, ...doc.data() }
-    });
-  } catch (error) {
-    console.error('Get application error:', error);
-    res.status(500).json({
-      error: 'Failed to fetch application',
-      message: error.message
-    });
-  }
-};
-
-/**
- * Update application status
- * @route PATCH /api/admin/applications/:id/status
- */
-export const updateApplicationStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!['submitted', 'under_review', 'accepted', 'rejected', 'waitlisted'].includes(status)) {
-      return res.status(400).json({
-        error: 'Invalid status value'
-      });
-    }
-
-    await db.collection('studyAbroadApplications').doc(id).update({
-      status,
-      reviewedBy: req.user.uid,
-      reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Send email notification to student
-    const application = await db.collection('studyAbroadApplications').doc(id).get();
-    await sendApplicationEmail(application.data(), status);
-
-    res.json({
-      success: true,
-      message: 'Application status updated successfully'
-    });
-  } catch (error) {
-    console.error('Update application status error:', error);
-    res.status(500).json({
-      error: 'Failed to update application status',
-      message: error.message
-    });
-  }
-};
 
 /**
  * Add admin note to application
@@ -1255,34 +1437,52 @@ export const deleteApplication = async (req, res) => {
 // ==================== STUDY ABROAD PROGRAM MANAGEMENT ====================
 
 /**
- * Get all study abroad programs
+ * Get all study abroad programs with comprehensive details
  * @route GET /api/admin/programs
  */
 export const getAllPrograms = async (req, res) => {
   try {
-    const { universityId, degree, limit = 50 } = req.query;
+    const { universityId, degree, status, limit = 50, offset = 0 } = req.query;
 
-    let query = db.collection('studyAbroadPrograms');
+    let query = db.collection('studyAbroadPrograms').orderBy('settings.createdAt', 'desc');
 
     if (universityId) {
-      query = query.where('universityId', '==', universityId);
+      query = query.where('basicInfo.universityId', '==', universityId);
     }
     if (degree) {
-      query = query.where('degree', '==', degree);
+      query = query.where('basicInfo.degree', '==', degree);
+    }
+    if (status) {
+      if (status === 'active') {
+        query = query.where('settings.isActive', '==', true);
+      } else if (status === 'inactive') {
+        query = query.where('settings.isActive', '==', false);
+      }
     }
 
-    query = query.limit(parseInt(limit));
+    query = query.limit(parseInt(limit)).offset(parseInt(offset));
 
     const snapshot = await query.get();
-    const programs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const programs = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        // Extract summary information for list view
+        basicInfo: data.basicInfo || {},
+        fees: data.fees || { tuition: { amount: 0, currency: 'USD' } },
+        settings: data.settings || { isActive: true, isFeatured: false },
+        academics: data.academics || { credits: 0 },
+        // Include full data for detailed view
+        ...data
+      };
+    });
 
     res.json({
       success: true,
       programs,
-      total: programs.length
+      total: programs.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     });
   } catch (error) {
     console.error('Get programs error:', error);
@@ -1294,7 +1494,7 @@ export const getAllPrograms = async (req, res) => {
 };
 
 /**
- * Get single program by ID
+ * Get single program with full comprehensive details by ID
  * @route GET /api/admin/programs/:id
  */
 export const getProgram = async (req, res) => {
@@ -1308,9 +1508,59 @@ export const getProgram = async (req, res) => {
       });
     }
 
+    const data = doc.data();
+
+    // Structure the comprehensive program profile
+    const program = {
+      id: doc.id,
+      basicInfo: data.basicInfo || {
+        name: '',
+        universityId: '',
+        universityName: '',
+        degree: 'undergraduate',
+        field: '',
+        subfield: '',
+        duration: '',
+        language: 'English',
+        description: ''
+      },
+      academics: data.academics || {
+        credits: 0,
+        curriculum: { courses: [], specializations: [], learningOutcomes: [] },
+        accreditation: [],
+        ranking: 0
+      },
+      admission: data.admission || {
+        requirements: { academic: [], english: [], documents: [], experience: '' },
+        deadlines: { fall: '', spring: '', summer: '' },
+        process: '',
+        interviews: false
+      },
+      fees: data.fees || {
+        tuition: { amount: 0, currency: 'USD', frequency: 'year' },
+        scholarships: [],
+        additionalFees: []
+      },
+      career: data.career || {
+        jobProspects: [],
+        averageSalary: { amount: 0, currency: 'USD', period: 'year' },
+        industries: [],
+        employers: []
+      },
+      settings: data.settings || {
+        isActive: true,
+        isFeatured: false,
+        priority: 0,
+        tags: [],
+        targetStudents: [],
+        lastUpdated: new Date().toISOString(),
+        createdAt: data.createdAt || new Date().toISOString()
+      }
+    };
+
     res.json({
       success: true,
-      program: { id: doc.id, ...doc.data() }
+      program
     });
   } catch (error) {
     console.error('Get program error:', error);
@@ -1322,20 +1572,62 @@ export const getProgram = async (req, res) => {
 };
 
 /**
- * Create new program
+ * Create new program with comprehensive profile
  * @route POST /api/admin/programs
  */
 export const createProgram = async (req, res) => {
   try {
-    const programData = {
-      ...req.body,
-      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: req.user.uid
+    const programData = req.body;
+
+    // Structure the comprehensive program profile
+    const newProgram = {
+      basicInfo: programData.basicInfo || {
+        name: '',
+        universityId: '',
+        universityName: '',
+        degree: 'undergraduate',
+        field: '',
+        subfield: '',
+        duration: '',
+        language: 'English',
+        description: ''
+      },
+      academics: programData.academics || {
+        credits: 0,
+        curriculum: { courses: [], specializations: [], learningOutcomes: [] },
+        accreditation: [],
+        ranking: 0
+      },
+      admission: programData.admission || {
+        requirements: { academic: [], english: [], documents: [], experience: '' },
+        deadlines: { fall: '', spring: '', summer: '' },
+        process: '',
+        interviews: false
+      },
+      fees: programData.fees || {
+        tuition: { amount: 0, currency: 'USD', frequency: 'year' },
+        scholarships: [],
+        additionalFees: []
+      },
+      career: programData.career || {
+        jobProspects: [],
+        averageSalary: { amount: 0, currency: 'USD', period: 'year' },
+        industries: [],
+        employers: []
+      },
+      settings: {
+        isActive: programData.settings?.isActive !== undefined ? programData.settings.isActive : true,
+        isFeatured: programData.settings?.isFeatured !== undefined ? programData.settings.isFeatured : false,
+        priority: programData.settings?.priority || 0,
+        tags: programData.settings?.tags || [],
+        targetStudents: programData.settings?.targetStudents || [],
+        lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        createdBy: req.user.uid
+      }
     };
 
-    const docRef = await db.collection('studyAbroadPrograms').add(programData);
+    const docRef = await db.collection('studyAbroadPrograms').add(newProgram);
 
     res.status(201).json({
       success: true,
@@ -1352,19 +1644,27 @@ export const createProgram = async (req, res) => {
 };
 
 /**
- * Update program
+ * Update program with comprehensive profile
  * @route PATCH /api/admin/programs/:id
  */
 export const updateProgram = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = {
-      ...req.body,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedBy: req.user.uid
+    const updateData = req.body;
+
+    // Add metadata to the update
+    const metadataUpdate = {
+      'settings.lastUpdated': new Date().toISOString(),
+      'settings.updatedBy': req.user.uid
     };
 
-    await db.collection('studyAbroadPrograms').doc(id).update(updateData);
+    // Merge the update data with metadata
+    const finalUpdateData = {
+      ...updateData,
+      ...metadataUpdate
+    };
+
+    await db.collection('studyAbroadPrograms').doc(id).update(finalUpdateData);
 
     res.json({
       success: true,
@@ -1518,6 +1818,917 @@ export const exportUniversities = async (req, res) => {
     console.error('Export universities error:', error);
     res.status(500).json({
       error: 'Failed to export universities',
+      message: error.message
+    });
+  }
+};
+
+// ==================== COMPREHENSIVE APPLICATION WORKFLOW MANAGEMENT ====================
+
+/**
+ * Get applications with full workflow details
+ * @route GET /api/admin/applications
+ */
+export const getAllApplications = async (req, res) => {
+  try {
+    const {
+      status,
+      priority,
+      university,
+      assigned,
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    let query = db.collection('applications').orderBy('workflow.submittedAt', 'desc');
+
+    // Apply filters
+    if (status) {
+      query = query.where('workflow.status', '==', status);
+    }
+    if (priority) {
+      query = query.where('workflow.priority', '==', priority);
+    }
+    if (university) {
+      query = query.where('university.id', '==', university);
+    }
+    if (assigned) {
+      if (assigned === 'assigned') {
+        query = query.where('workflow.assignedTo', '!=', null);
+      } else if (assigned === 'unassigned') {
+        query = query.where('workflow.assignedTo', '==', null);
+      }
+    }
+
+    query = query.limit(parseInt(limit)).offset(parseInt(offset));
+
+    const snapshot = await query.get();
+    const applications = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        // Summary data for list view
+        applicantName: `${data.applicant?.firstName || ''} ${data.applicant?.lastName || ''}`.trim(),
+        email: data.applicant?.email || '',
+        universityName: data.university?.name || '',
+        programName: data.program?.name || '',
+        status: data.workflow?.status || 'submitted',
+        priority: data.workflow?.priority || 'medium',
+        submittedAt: data.workflow?.submittedAt || data.createdAt,
+        deadline: data.workflow?.deadline,
+        documentsVerified: data.analytics?.documentsVerified || 0,
+        totalDocuments: data.analytics?.totalDocuments || 6,
+        paymentStatus: data.payment?.status || 'pending',
+        assignedTo: data.workflow?.assignedTo,
+        // Full data available for detailed view
+        ...data
+      };
+    });
+
+    res.json({
+      success: true,
+      applications,
+      total: applications.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Get applications error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch applications',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get single application with full workflow details
+ * @route GET /api/admin/applications/:id
+ */
+export const getApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('applications').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        error: 'Application not found'
+      });
+    }
+
+    const data = doc.data();
+
+    // Structure the comprehensive application workflow
+    const application = {
+      id: doc.id,
+      applicant: data.applicant || {
+        userId: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        dateOfBirth: '',
+        nationality: '',
+        passportNumber: ''
+      },
+      university: data.university || {
+        id: '',
+        name: '',
+        country: '',
+        applicationFee: 0,
+        currency: 'USD'
+      },
+      program: data.program || {
+        name: '',
+        degree: '',
+        intakePeriod: '',
+        startDate: ''
+      },
+      academics: data.academics || {
+        currentEducation: '',
+        gpa: 0,
+        graduationYear: 0,
+        previousInstitution: '',
+        englishProficiency: { test: '', score: 0, date: '' }
+      },
+      documents: data.documents || {
+        passport: { status: 'pending', notes: '' },
+        transcripts: { status: 'pending', notes: '' },
+        certificates: { status: 'pending', notes: '' },
+        essay: { status: 'pending', notes: '' },
+        recommendations: { status: 'pending', notes: '' },
+        financialProof: { status: 'pending', notes: '' }
+      },
+      payment: data.payment || {
+        amount: 0,
+        currency: 'USD',
+        status: 'pending',
+        transactionId: '',
+        paymentDate: '',
+        method: ''
+      },
+      workflow: data.workflow || {
+        status: 'submitted',
+        currentStep: 'document_review',
+        priority: 'medium',
+        assignedTo: null,
+        deadline: '',
+        submittedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      communications: data.communications || [],
+      timeline: data.timeline || [],
+      analytics: data.analytics || {
+        timeToReview: 0,
+        documentsVerified: 0,
+        totalDocuments: 6,
+        communicationsCount: 0
+      }
+    };
+
+    res.json({
+      success: true,
+      application
+    });
+  } catch (error) {
+    console.error('Get application error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch application',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Update application status and workflow
+ * @route PATCH /api/admin/applications/:id/status
+ */
+export const updateApplicationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes, adminId } = req.body;
+
+    const applicationRef = db.collection('applications').doc(id);
+
+    // Get current application data
+    const doc = await applicationRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const currentData = doc.data();
+
+    // Update workflow status
+    const workflowUpdate = {
+      'workflow.status': status,
+      'workflow.updatedAt': new Date().toISOString()
+    };
+
+    // Add timeline entry
+    const timelineEntry = {
+      id: Date.now().toString(),
+      action: 'Status Updated',
+      description: `Application status changed to ${status}${notes ? `: ${notes}` : ''}`,
+      timestamp: new Date().toISOString(),
+      performedBy: adminId || req.user.uid,
+      metadata: { previousStatus: currentData.workflow?.status, newStatus: status }
+    };
+
+    await applicationRef.update({
+      ...workflowUpdate,
+      timeline: [...(currentData.timeline || []), timelineEntry]
+    });
+
+    res.json({
+      success: true,
+      message: 'Application status updated successfully'
+    });
+  } catch (error) {
+    console.error('Update application status error:', error);
+    res.status(500).json({
+      error: 'Failed to update application status',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Verify application documents
+ * @route PATCH /api/admin/applications/:id/documents/:documentType
+ */
+export const verifyApplicationDocument = async (req, res) => {
+  try {
+    const { id, documentType } = req.params;
+    const { status, notes, verifiedBy } = req.body;
+
+    const applicationRef = db.collection('applications').doc(id);
+
+    // Update document status
+    const documentUpdate = {
+      [`documents.${documentType}.status`]: status,
+      [`documents.${documentType}.notes`]: notes,
+      [`documents.${documentType}.verifiedAt`]: new Date().toISOString(),
+      [`documents.${documentType}.verifiedBy`]: verifiedBy || req.user.uid
+    };
+
+    // Add timeline entry
+    const doc = await applicationRef.get();
+    const currentData = doc.data();
+
+    const timelineEntry = {
+      id: Date.now().toString(),
+      action: 'Document Verified',
+      description: `${documentType} document ${status}${notes ? `: ${notes}` : ''}`,
+      timestamp: new Date().toISOString(),
+      performedBy: verifiedBy || req.user.uid,
+      metadata: { documentType, status }
+    };
+
+    // Update analytics
+    const currentVerified = currentData.analytics?.documentsVerified || 0;
+    const newVerified = status === 'verified' ? currentVerified + 1 :
+                       status === 'rejected' && currentData.documents?.[documentType]?.status === 'verified' ?
+                       currentVerified - 1 : currentVerified;
+
+    await applicationRef.update({
+      ...documentUpdate,
+      timeline: [...(currentData.timeline || []), timelineEntry],
+      'analytics.documentsVerified': newVerified,
+      'workflow.updatedAt': new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Document verification updated successfully'
+    });
+  } catch (error) {
+    console.error('Document verification error:', error);
+    res.status(500).json({
+      error: 'Failed to update document verification',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Add communication to application
+ * @route POST /api/admin/applications/:id/communications
+ */
+export const addApplicationCommunication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, direction, subject, message, sentBy } = req.body;
+
+    const applicationRef = db.collection('applications').doc(id);
+
+    const communication = {
+      id: Date.now().toString(),
+      type,
+      direction,
+      subject,
+      message,
+      timestamp: new Date().toISOString(),
+      sentBy: sentBy || req.user.uid
+    };
+
+    // Add timeline entry
+    const doc = await applicationRef.get();
+    const currentData = doc.data();
+
+    const timelineEntry = {
+      id: communication.id,
+      action: 'Communication Added',
+      description: `${type} communication: ${subject}`,
+      timestamp: new Date().toISOString(),
+      performedBy: sentBy || req.user.uid,
+      metadata: { type, subject }
+    };
+
+    // Update analytics
+    const currentCount = currentData.analytics?.communicationsCount || 0;
+
+    await applicationRef.update({
+      communications: [...(currentData.communications || []), communication],
+      timeline: [...(currentData.timeline || []), timelineEntry],
+      'analytics.communicationsCount': currentCount + 1,
+      'workflow.updatedAt': new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Communication added successfully'
+    });
+  } catch (error) {
+    console.error('Add communication error:', error);
+    res.status(500).json({
+      error: 'Failed to add communication',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Assign application to admin
+ * @route PATCH /api/admin/applications/:id/assign
+ */
+export const assignApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { assignedTo, assignedBy } = req.body;
+
+    const applicationRef = db.collection('applications').doc(id);
+
+    // Add timeline entry
+    const doc = await applicationRef.get();
+    const currentData = doc.data();
+
+    const timelineEntry = {
+      id: Date.now().toString(),
+      action: 'Application Assigned',
+      description: `Application assigned to ${assignedTo}`,
+      timestamp: new Date().toISOString(),
+      performedBy: assignedBy || req.user.uid,
+      metadata: { assignedTo }
+    };
+
+    await applicationRef.update({
+      'workflow.assignedTo': assignedTo,
+      'workflow.updatedAt': new Date().toISOString(),
+      timeline: [...(currentData.timeline || []), timelineEntry]
+    });
+
+    res.json({
+      success: true,
+      message: 'Application assigned successfully'
+    });
+  } catch (error) {
+    console.error('Assign application error:', error);
+    res.status(500).json({
+      error: 'Failed to assign application',
+      message: error.message
+    });
+  }
+};
+
+// ==================== VISA APPLICATION MANAGEMENT ====================
+
+/**
+ * Get all visa applications with optional filters
+ * @route GET /api/admin/visa-applications
+ */
+export const getAllVisaApplications = async (req, res) => {
+  try {
+    const { status, startDate, endDate, limit = 50, offset = 0 } = req.query;
+
+    let query = db.collection('visaApplications').orderBy('submittedAt', 'desc');
+
+    // Apply filters
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+    if (startDate) {
+      query = query.where('submittedAt', '>=', new Date(startDate).toISOString());
+    }
+    if (endDate) {
+      query = query.where('submittedAt', '<=', new Date(endDate).toISOString());
+    }
+
+    // Pagination
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+    query = query.limit(limitNum).offset(offsetNum);
+
+    const snapshot = await query.get();
+    const applications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({
+      success: true,
+      applications,
+      total: snapshot.size,
+      limit: limitNum,
+      offset: offsetNum
+    });
+  } catch (error) {
+    console.error('Get visa applications error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch visa applications',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get single visa application by ID
+ * @route GET /api/admin/visa-applications/:id
+ */
+export const getVisaApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('visaApplications').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        error: 'Visa application not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      application: { id: doc.id, ...doc.data() }
+    });
+  } catch (error) {
+    console.error('Get visa application error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch visa application',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Update visa application status
+ * @route PATCH /api/admin/visa-applications/:id/status
+ */
+export const updateVisaApplicationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['submitted', 'under_review', 'approved', 'rejected', 'completed'].includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid status value'
+      });
+    }
+
+    await db.collection('visaApplications').doc(id).update({
+      status,
+      reviewedBy: req.user.uid,
+      reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Send email notification to applicant
+    const application = await db.collection('visaApplications').doc(id).get();
+    await sendApplicationEmail(application.data(), status);
+
+    res.json({
+      success: true,
+      message: 'Visa application status updated successfully'
+    });
+  } catch (error) {
+    console.error('Update visa application status error:', error);
+    res.status(500).json({
+      error: 'Failed to update visa application status',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Add admin note to visa application
+ * @route POST /api/admin/visa-applications/:id/notes
+ */
+export const addVisaApplicationNote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+
+    if (!note) {
+      return res.status(400).json({
+        error: 'Note is required'
+      });
+    }
+
+    await db.collection('visaApplications').doc(id).update({
+      adminNotes: note,
+      noteAddedAt: admin.firestore.FieldValue.serverTimestamp(),
+      noteAddedBy: req.user.uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      success: true,
+      message: 'Note added successfully'
+    });
+  } catch (error) {
+    console.error('Add visa application note error:', error);
+    res.status(500).json({
+      error: 'Failed to add note',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Delete visa application
+ * @route DELETE /api/admin/visa-applications/:id
+ */
+export const deleteVisaApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('visaApplications').doc(id).delete();
+
+    res.json({
+      success: true,
+      message: 'Visa application deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete visa application error:', error);
+    res.status(500).json({
+      error: 'Failed to delete visa application',
+      message: error.message
+    });
+  }
+};
+
+// ==================== HOTEL BOOKING MANAGEMENT ====================
+
+/**
+ * Get all hotel bookings with optional filters
+ * @route GET /api/admin/hotel-bookings
+ */
+export const getAllHotelBookings = async (req, res) => {
+  try {
+    const { status, startDate, endDate, limit = 50, offset = 0 } = req.query;
+
+    let query = db.collection('hotelBookings').orderBy('bookingDate', 'desc');
+
+    // Apply filters
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+    if (startDate) {
+      query = query.where('bookingDate', '>=', new Date(startDate).toISOString());
+    }
+    if (endDate) {
+      query = query.where('bookingDate', '<=', new Date(endDate).toISOString());
+    }
+
+    // Pagination
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+    query = query.limit(limitNum).offset(offsetNum);
+
+    const snapshot = await query.get();
+    const bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({
+      success: true,
+      bookings,
+      total: snapshot.size,
+      limit: limitNum,
+      offset: offsetNum
+    });
+  } catch (error) {
+    console.error('Get hotel bookings error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch hotel bookings',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get single hotel booking by ID
+ * @route GET /api/admin/hotel-bookings/:id
+ */
+export const getHotelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('hotelBookings').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        error: 'Hotel booking not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      booking: { id: doc.id, ...doc.data() }
+    });
+  } catch (error) {
+    console.error('Get hotel booking error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch hotel booking',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Update hotel booking status
+ * @route PATCH /api/admin/hotel-bookings/:id/status
+ */
+export const updateHotelBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['confirmed', 'checked_in', 'checked_out', 'cancelled', 'refunded'].includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid status value'
+      });
+    }
+
+    await db.collection('hotelBookings').doc(id).update({
+      status,
+      updatedBy: req.user.uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Send email notification if status changed
+    if (status) {
+      const booking = await db.collection('hotelBookings').doc(id).get();
+      await sendBookingEmail(booking.data(), status);
+    }
+
+    res.json({
+      success: true,
+      message: 'Hotel booking status updated successfully'
+    });
+  } catch (error) {
+    console.error('Update hotel booking status error:', error);
+    res.status(500).json({
+      error: 'Failed to update hotel booking status',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Add admin note to hotel booking
+ * @route POST /api/admin/hotel-bookings/:id/notes
+ */
+export const addHotelBookingNote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+
+    if (!note) {
+      return res.status(400).json({
+        error: 'Note is required'
+      });
+    }
+
+    await db.collection('hotelBookings').doc(id).update({
+      adminNotes: note,
+      noteAddedAt: admin.firestore.FieldValue.serverTimestamp(),
+      noteAddedBy: req.user.uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      success: true,
+      message: 'Note added successfully'
+    });
+  } catch (error) {
+    console.error('Add hotel booking note error:', error);
+    res.status(500).json({
+      error: 'Failed to add note',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Delete hotel booking
+ * @route DELETE /api/admin/hotel-bookings/:id
+ */
+export const deleteHotelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('hotelBookings').doc(id).delete();
+
+    res.json({
+      success: true,
+      message: 'Hotel booking deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete hotel booking error:', error);
+    res.status(500).json({
+      error: 'Failed to delete hotel booking',
+      message: error.message
+    });
+  }
+};
+
+// ==================== HOLIDAY PACKAGE BOOKING MANAGEMENT ====================
+
+/**
+ * Get all holiday package bookings with optional filters
+ * @route GET /api/admin/holiday-package-bookings
+ */
+export const getAllHolidayPackageBookings = async (req, res) => {
+  try {
+    const { status, startDate, endDate, limit = 50, offset = 0 } = req.query;
+
+    let query = db.collection('holidayPackageBookings').orderBy('bookingDate', 'desc');
+
+    // Apply filters
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+    if (startDate) {
+      query = query.where('bookingDate', '>=', new Date(startDate).toISOString());
+    }
+    if (endDate) {
+      query = query.where('bookingDate', '<=', new Date(endDate).toISOString());
+    }
+
+    // Pagination
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+    query = query.limit(limitNum).offset(offsetNum);
+
+    const snapshot = await query.get();
+    const bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({
+      success: true,
+      bookings,
+      total: snapshot.size,
+      limit: limitNum,
+      offset: offsetNum
+    });
+  } catch (error) {
+    console.error('Get holiday package bookings error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch holiday package bookings',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get single holiday package booking by ID
+ * @route GET /api/admin/holiday-package-bookings/:id
+ */
+export const getHolidayPackageBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('holidayPackageBookings').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        error: 'Holiday package booking not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      booking: { id: doc.id, ...doc.data() }
+    });
+  } catch (error) {
+    console.error('Get holiday package booking error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch holiday package booking',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Update holiday package booking status
+ * @route PATCH /api/admin/holiday-package-bookings/:id/status
+ */
+export const updateHolidayPackageBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['confirmed', 'in_progress', 'completed', 'cancelled', 'refunded'].includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid status value'
+      });
+    }
+
+    await db.collection('holidayPackageBookings').doc(id).update({
+      status,
+      updatedBy: req.user.uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Send email notification if status changed
+    if (status) {
+      const booking = await db.collection('holidayPackageBookings').doc(id).get();
+      await sendBookingEmail(booking.data(), status);
+    }
+
+    res.json({
+      success: true,
+      message: 'Holiday package booking status updated successfully'
+    });
+  } catch (error) {
+    console.error('Update holiday package booking status error:', error);
+    res.status(500).json({
+      error: 'Failed to update holiday package booking status',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Add admin note to holiday package booking
+ * @route POST /api/admin/holiday-package-bookings/:id/notes
+ */
+export const addHolidayPackageBookingNote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+
+    if (!note) {
+      return res.status(400).json({
+        error: 'Note is required'
+      });
+    }
+
+    await db.collection('holidayPackageBookings').doc(id).update({
+      adminNotes: note,
+      noteAddedAt: admin.firestore.FieldValue.serverTimestamp(),
+      noteAddedBy: req.user.uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      success: true,
+      message: 'Note added successfully'
+    });
+  } catch (error) {
+    console.error('Add holiday package booking note error:', error);
+    res.status(500).json({
+      error: 'Failed to add note',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Delete holiday package booking
+ * @route DELETE /api/admin/holiday-package-bookings/:id
+ */
+export const deleteHolidayPackageBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('holidayPackageBookings').doc(id).delete();
+
+    res.json({
+      success: true,
+      message: 'Holiday package booking deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete holiday package booking error:', error);
+    res.status(500).json({
+      error: 'Failed to delete holiday package booking',
       message: error.message
     });
   }

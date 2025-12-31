@@ -16,14 +16,21 @@ interface SyncResult {
   error?: string;
 }
 
+import { getAuth } from 'firebase/auth';
+
 /**
- * Get auth token from localStorage
+ * Get fresh auth token from Firebase
  */
-const getAuthToken = (): string | null => {
+const getAuthToken = async (): Promise<string | null> => {
   try {
-    const authData = localStorage.getItem('authToken');
-    return authData ? JSON.parse(authData).token : null;
-  } catch {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
     return null;
   }
 };
@@ -33,7 +40,7 @@ const getAuthToken = (): string | null => {
  */
 const syncBooking = async (item: SyncQueueItem): Promise<SyncResult> => {
   try {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -77,7 +84,7 @@ const syncBooking = async (item: SyncQueueItem): Promise<SyncResult> => {
  */
 const syncPriceAlert = async (item: SyncQueueItem): Promise<SyncResult> => {
   try {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -120,7 +127,7 @@ const syncPriceAlert = async (item: SyncQueueItem): Promise<SyncResult> => {
  */
 const syncPreferences = async (item: SyncQueueItem): Promise<SyncResult> => {
   try {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) {
       throw new Error('Not authenticated');
     }
@@ -152,7 +159,7 @@ const syncPreferences = async (item: SyncQueueItem): Promise<SyncResult> => {
  */
 const syncPayment = async (item: SyncQueueItem): Promise<SyncResult> => {
   try {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) {
       throw new Error('Not authenticated');
     }

@@ -55,6 +55,9 @@ const BookingManagement = lazy(() => import("./pages/admin/BookingManagement"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const UniversityManagement = lazy(() => import("./pages/admin/UniversityManagement"));
 const ApplicationManagement = lazy(() => import("./pages/admin/ApplicationManagement"));
+const VisaApplicationManagement = lazy(() => import("./pages/admin/VisaApplicationManagement"));
+const HotelBookingManagement = lazy(() => import("./pages/admin/HotelBookingManagement"));
+const HolidayPackageBookingManagement = lazy(() => import("./pages/admin/HolidayPackageBookingManagement"));
 const OfferManagement = lazy(() => import("./pages/admin/OfferManagement"));
 const DealManagement = lazy(() => import("./pages/admin/DealManagement"));
 const ProgramManagement = lazy(() => import("./pages/admin/ProgramManagement"));
@@ -120,6 +123,9 @@ const AppContent: React.FC = () => {
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/bookings" element={<BookingManagement />} />
+              <Route path="/admin/visa-applications" element={<VisaApplicationManagement />} />
+              <Route path="/admin/hotel-bookings" element={<HotelBookingManagement />} />
+              <Route path="/admin/holiday-package-bookings" element={<HolidayPackageBookingManagement />} />
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/offers" element={<OfferManagement />} />
               <Route path="/admin/deals" element={<DealManagement />} />
@@ -195,6 +201,7 @@ const App: React.FC = () => {
           style: {
             background: '#363636',
             color: '#fff',
+            zIndex: 10000,
           },
           success: {
             duration: 3000,

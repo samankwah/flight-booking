@@ -363,7 +363,75 @@ const HolidayPackagePage: React.FC = () => {
                           <div className="text-sm text-gray-600">Per person</div>
                         </div>
 
-                        <button className="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center justify-center gap-2 mb-3">
+                        <button
+                          className="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg hover:bg-cyan-700 transition font-semibold flex items-center justify-center gap-2 mb-3"
+                          onClick={async () => {
+                            try {
+                              // Get authentication token
+                              const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                              if (!currentUser?.token) {
+                                alert('Please log in to book this package');
+                                navigate('/auth/login');
+                                return;
+                              }
+
+                              // Prepare booking data
+                              const bookingData = {
+                                packageDetails: {
+                                  id: pkg.id,
+                                  name: pkg.destination.name + ' Holiday Package',
+                                  destination: pkg.destination.name,
+                                  duration: pkg.duration,
+                                  departureDate: pkg.flights.outbound.departureTime,
+                                  returnDate: pkg.flights.return.departureTime,
+                                  inclusions: pkg.inclusions,
+                                  highlights: pkg.highlights
+                                },
+                                travelerInfo: {
+                                  firstName: '', // Would be collected in a booking form
+                                  lastName: '',
+                                  email: currentUser.email || '',
+                                  phone: ''
+                                },
+                                travelDetails: {
+                                  adults: adults,
+                                  children: children || 0,
+                                  totalTravelers: adults + (children || 0)
+                                },
+                                pricing: {
+                                  totalPrice: pkg.totalPrice,
+                                  currency: pkg.currency,
+                                  pricePerPerson: pkg.totalPrice
+                                }
+                              };
+
+                              const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/holiday-package-bookings`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${currentUser.token}`
+                                },
+                                body: JSON.stringify(bookingData)
+                              });
+
+                              if (!response.ok) {
+                                throw new Error('Failed to book holiday package');
+                              }
+
+                              const result = await response.json();
+
+                              if (result.success) {
+                                alert('Holiday package booked successfully! Check your email for confirmation.');
+                                navigate('/my-bookings');
+                              } else {
+                                throw new Error(result.error || 'Failed to book package');
+                              }
+                            } catch (error) {
+                              console.error('Error booking holiday package:', error);
+                              alert('Failed to book holiday package. Please try again.');
+                            }
+                          }}
+                        >
                           Book Now
                           <Arrow className="w-4 h-4" />
                         </button>
