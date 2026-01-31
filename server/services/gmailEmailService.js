@@ -45,11 +45,30 @@ export async function sendBookingEmail(booking, emailType = 'confirmed') {
       };
     }
 
+    // Normalize passengerInfo - handle both array (new format) and object (legacy format)
+    const passengerInfo = Array.isArray(booking.passengerInfo)
+      ? booking.passengerInfo[0]
+      : booking.passengerInfo;
+
+    if (!passengerInfo?.email) {
+      console.error('No email found in passengerInfo:', passengerInfo);
+      return {
+        success: false,
+        message: 'No recipient email found in booking data',
+      };
+    }
+
+    // Create normalized booking object for templates
+    const normalizedBooking = {
+      ...booking,
+      passengerInfo: passengerInfo,
+    };
+
     // Generate PDF ticket
     let pdfAttachment = null;
     try {
       console.log(`Generating PDF ticket for booking ${booking.id}...`);
-      const pdfBuffer = await generateFlightTicketPDF(booking);
+      const pdfBuffer = await generateFlightTicketPDF(normalizedBooking);
       const filename = `flight-ticket-${booking.id}.pdf`;
 
       pdfAttachment = {
@@ -69,19 +88,19 @@ export async function sendBookingEmail(booking, emailType = 'confirmed') {
 
     if (emailType === 'confirmed') {
       subject = `✈️ Flight Booking Confirmed - ${booking.id}`;
-      htmlContent = getConfirmedEmailHTML(booking);
+      htmlContent = getConfirmedEmailHTML(normalizedBooking);
     } else if (emailType === 'cancelled') {
       subject = `❌ Flight Booking Cancelled - ${booking.id}`;
-      htmlContent = getCancelledEmailHTML(booking);
+      htmlContent = getCancelledEmailHTML(normalizedBooking);
     } else {
       subject = `📧 Flight Booking Update - ${booking.id}`;
-      htmlContent = getGenericEmailHTML(booking);
+      htmlContent = getGenericEmailHTML(normalizedBooking);
     }
 
     // Prepare email options
     const mailOptions = {
       from: `Flight Booking System <${process.env.GMAIL_USER}>`,
-      to: booking.passengerInfo.email,
+      to: passengerInfo.email,
       subject: subject,
       html: htmlContent,
       attachments: pdfAttachment ? [pdfAttachment] : [],
@@ -103,13 +122,71 @@ export async function sendBookingEmail(booking, emailType = 'confirmed') {
       },
     };
   } catch (error) {
-    console.error('Error sending email:', error);
+    const errorCode = error.code || error.responseCode;
+    const errorMessage = error.message || 'Failed to send email';
+
+    console.error('❌ Error sending email:');
+    console.error(`   Error Code: ${errorCode || 'N/A'}`);
+    console.error(`   Message: ${errorMessage}`);
+
+    // Provide helpful troubleshooting for common errors
+    if (errorCode === 'EAUTH' || errorMessage.includes('Invalid login') || errorMessage.includes('535')) {
+      console.error('   💡 Tip: Your Gmail App Password may be invalid or expired.');
+      console.error('   → Regenerate at: https://myaccount.google.com/apppasswords');
+    } else if (errorCode === 'EENVELOPE' || errorMessage.includes('recipient')) {
+      console.error('   💡 Tip: Check that the recipient email address is valid.');
+    } else if (errorCode === 'ECONNECTION' || errorCode === 'ETIMEDOUT') {
+      console.error('   💡 Tip: Network issue - check your internet connection.');
+    }
+
     return {
       success: false,
-      message: error.message || 'Failed to send email',
+      message: errorMessage,
+      errorCode: errorCode,
       error: error,
     };
   }
+}
+
+/**
+ * Format datetime - handles both ISO datetime and time-only strings
+ */
+function formatDateTime(dateTimeInput) {
+  if (!dateTimeInput) return 'N/A';
+  try {
+    const date = new Date(dateTimeInput);
+    if (isNaN(date.getTime())) {
+      return dateTimeInput; // Return as-is if can't parse
+    }
+    return date.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  } catch {
+    return dateTimeInput;
+  }
+}
+
+/**
+ * Format duration - handles undefined/null/NaN
+ */
+function formatDuration(minutes) {
+  if (minutes === undefined || minutes === null || isNaN(minutes)) return 'N/A';
+  if (minutes === 0) return '0h 0m';
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format airline name with fallback
+ */
+function formatAirline(airlineName, airlineCode) {
+  const name = airlineName || 'Unknown Airline';
+  if (airlineCode) {
+    return `${name} (${airlineCode})`;
+  }
+  return name;
 }
 
 /**
@@ -251,27 +328,27 @@ function getConfirmedEmailHTML(booking) {
     <div class="section">
       <h2>✈️ Flight Details</h2>
       <div class="flight-route">
+        <img
+          src="https://pics.avs.io/100/40/${flight.airlineCode || 'XX'}.png"
+          alt="${formatAirline(flight.airline, flight.airlineCode)}"
+          style="height: 30px; margin-bottom: 10px; object-fit: contain;"
+          onerror="this.style.display='none'"
+        />
         <div>Your Flight</div>
-        <div class="route-airports">${flight.departureAirport} → ${flight.arrivalAirport}</div>
-        <div>${flight.airline} (${flight.airlineCode})</div>
+        <div class="route-airports">${flight.departureAirport || 'N/A'} → ${flight.arrivalAirport || 'N/A'}</div>
+        <div>${formatAirline(flight.airline, flight.airlineCode)}</div>
       </div>
       <div class="info-row">
         <span class="label">Departure</span>
-        <span class="value">${new Date(flight.departureTime).toLocaleString('en-US', {
-          dateStyle: 'medium',
-          timeStyle: 'short'
-        })}</span>
+        <span class="value">${formatDateTime(flight.departureDateTime || flight.departureTime)}</span>
       </div>
       <div class="info-row">
         <span class="label">Arrival</span>
-        <span class="value">${new Date(flight.arrivalTime).toLocaleString('en-US', {
-          dateStyle: 'medium',
-          timeStyle: 'short'
-        })}</span>
+        <span class="value">${formatDateTime(flight.arrivalDateTime || flight.arrivalTime)}</span>
       </div>
       <div class="info-row">
         <span class="label">Duration</span>
-        <span class="value">${Math.floor(flight.duration / 60)}h ${flight.duration % 60}m</span>
+        <span class="value">${formatDuration(flight.duration)}</span>
       </div>
       <div class="info-row">
         <span class="label">Cabin Class</span>
@@ -305,16 +382,18 @@ function getConfirmedEmailHTML(booking) {
       <h2>💳 Payment Details</h2>
       <div class="info-row">
         <span class="label">Total Amount</span>
-        <span class="value">${booking.currency} ${booking.totalPrice.toLocaleString()}</span>
+        <span class="value">${booking.currency ?? 'USD'} ${(booking.totalPrice ?? 0).toLocaleString()}</span>
       </div>
       <div class="info-row">
         <span class="label">Payment Status</span>
         <span class="value" style="color: #10b981;">PAID ✓</span>
       </div>
+      ${booking.paymentId ? `
       <div class="info-row">
         <span class="label">Payment ID</span>
         <span class="value">${booking.paymentId}</span>
       </div>
+      ` : ''}
     </div>
 
     <div class="attachment-notice">
@@ -420,7 +499,92 @@ export async function testEmailService() {
   }
 }
 
+/**
+ * Verify Gmail SMTP connection on startup
+ * Call this when the server starts to ensure email is properly configured
+ */
+export async function verifyConnection() {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+
+  // Check if credentials are configured
+  if (!gmailUser || !gmailAppPassword) {
+    console.warn('⚠️  Gmail SMTP not configured:');
+    console.warn('   - Set GMAIL_USER and GMAIL_APP_PASSWORD in server/.env');
+    console.warn('   - Generate App Password at: https://myaccount.google.com/apppasswords');
+    return {
+      success: false,
+      configured: false,
+      message: 'Gmail credentials not set in environment variables',
+    };
+  }
+
+  const transporter = createTransporter();
+
+  try {
+    await transporter.verify();
+    console.log('✅ Gmail SMTP verified successfully');
+    console.log(`   📧 Sending emails from: ${gmailUser}`);
+    return {
+      success: true,
+      configured: true,
+      message: 'Gmail SMTP connection verified',
+    };
+  } catch (error) {
+    // Provide detailed error messages for common SMTP failures
+    let troubleshooting = '';
+    const errorCode = error.code || error.responseCode;
+    const errorMessage = error.message || '';
+
+    if (errorCode === 'EAUTH' || errorMessage.includes('Invalid login') || errorMessage.includes('535')) {
+      troubleshooting = `
+   ❌ Authentication failed. Common causes:
+      1. App Password is invalid or expired
+         → Generate a new one at: https://myaccount.google.com/apppasswords
+      2. Using regular password instead of App Password
+         → You must use a 16-character App Password, not your Gmail password
+      3. 2-Step Verification not enabled
+         → Enable 2FA first, then generate an App Password`;
+    } else if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND') {
+      troubleshooting = `
+   ❌ Connection failed. Common causes:
+      1. No internet connection
+      2. Firewall blocking outbound SMTP (port 587/465)
+      3. Gmail SMTP server unreachable`;
+    } else if (errorCode === 'ETIMEDOUT') {
+      troubleshooting = `
+   ❌ Connection timed out. Common causes:
+      1. Network issues
+      2. Firewall blocking Gmail SMTP ports`;
+    } else if (errorMessage.includes('less secure apps')) {
+      troubleshooting = `
+   ❌ "Less secure apps" error:
+      → Use App Password instead of regular password
+      → Generate at: https://myaccount.google.com/apppasswords`;
+    } else {
+      troubleshooting = `
+   ❌ SMTP Error: ${errorMessage}
+      → Try regenerating your App Password
+      → Ensure 2FA is enabled on your Google account`;
+    }
+
+    console.error('❌ Gmail SMTP verification FAILED');
+    console.error(`   Error Code: ${errorCode || 'N/A'}`);
+    console.error(`   Error: ${errorMessage}`);
+    console.error(troubleshooting);
+
+    return {
+      success: false,
+      configured: true,
+      message: `Gmail SMTP verification failed: ${errorMessage}`,
+      errorCode: errorCode,
+      error: error,
+    };
+  }
+}
+
 export default {
   sendBookingEmail,
   testEmailService,
+  verifyConnection,
 };

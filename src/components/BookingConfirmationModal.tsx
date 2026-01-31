@@ -65,11 +65,17 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
   if (!isOpen || !booking) return null;
 
-  // Format date and time
+  // Format date and time - handles both ISO datetime and time-only strings
   const formatDateTime = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
-      return new Date(dateString).toLocaleString('en-US', {
+      const date = new Date(dateString);
+      // If invalid, it might be time-only string like "14:30" or "2:30 PM"
+      if (isNaN(date.getTime())) {
+        // Just return the time string as-is since we can't parse a full date
+        return dateString;
+      }
+      return date.toLocaleString('en-US', {
         weekday: 'short',
         year: 'numeric',
         month: 'short',
@@ -84,10 +90,29 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
   // Calculate duration
   const formatDuration = (minutes: number) => {
+    if (minutes === undefined || minutes === null || isNaN(minutes)) return 'N/A';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
   };
+
+  // Normalize passengerInfo - handle both array and object formats
+  const getPassengerInfo = () => {
+    if (!booking?.passengerInfo) {
+      return { firstName: 'N/A', lastName: '', email: 'N/A', phone: 'N/A' };
+    }
+    const info = Array.isArray(booking.passengerInfo)
+      ? booking.passengerInfo[0]
+      : booking.passengerInfo;
+    return {
+      firstName: info?.firstName || 'N/A',
+      lastName: info?.lastName || '',
+      email: info?.email || 'N/A',
+      phone: info?.phone || 'N/A'
+    };
+  };
+
+  const passengerInfo = getPassengerInfo();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -131,7 +156,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
               <MdEmail className="w-6 h-6 text-green-600" />
               <div>
                 <p className="font-medium text-green-900">Confirmation email sent</p>
-                <p className="text-sm text-green-700">Check your inbox at {booking.passengerInfo.email}</p>
+                <p className="text-sm text-green-700">Check your inbox at {passengerInfo.email}</p>
               </div>
             </div>
           )}
@@ -143,9 +168,19 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
               <h3 className="font-bold text-lg">Flight Information</h3>
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Airline:</span>
-                <span className="font-medium">{booking.flightDetails.airline}</span>
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={`https://pics.avs.io/60/30/${booking.flightDetails.airlineCode || 'XX'}.png`}
+                  alt={booking.flightDetails.airline || 'Airline'}
+                  className="h-8 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <span className="font-semibold text-gray-800">
+                  {booking.flightDetails.airline || 'Unknown Airline'}
+                  {booking.flightDetails.airlineCode && ` (${booking.flightDetails.airlineCode})`}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Route:</span>
@@ -170,7 +205,11 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
               <div className="flex justify-between">
                 <span className="text-gray-600">Stops:</span>
                 <span className="font-medium">
-                  {booking.flightDetails.stops === 0 ? 'Non-stop' : `${booking.flightDetails.stops} stop(s)`}
+                  {booking.flightDetails.stops === 0
+                    ? 'Non-stop'
+                    : booking.flightDetails.stops != null
+                      ? `${booking.flightDetails.stops} stop(s)`
+                      : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -190,16 +229,16 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
               <div className="flex justify-between">
                 <span className="text-gray-600">Name:</span>
                 <span className="font-medium">
-                  {booking.passengerInfo.firstName} {booking.passengerInfo.lastName}
+                  {passengerInfo.firstName} {passengerInfo.lastName}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Email:</span>
-                <span className="font-medium">{booking.passengerInfo.email}</span>
+                <span className="font-medium">{passengerInfo.email}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Phone:</span>
-                <span className="font-medium">{booking.passengerInfo.phone}</span>
+                <span className="font-medium">{passengerInfo.phone}</span>
               </div>
             </div>
           </div>
