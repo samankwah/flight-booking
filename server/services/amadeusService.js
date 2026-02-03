@@ -1,35 +1,5 @@
 import getAmadeusClient from "../config/amadeus.js";
 
-// Timeout constants for Amadeus API calls
-const AMADEUS_FLIGHT_TIMEOUT = 25000; // 25 seconds for flight search
-const AMADEUS_AIRPORT_TIMEOUT = 20000; // 20 seconds for airport search
-const AMADEUS_INSPIRATION_TIMEOUT = 20000; // 20 seconds for flight inspiration
-
-/**
- * Wraps a promise with a timeout
- * @param {Promise} promise - The promise to wrap
- * @param {number} ms - Timeout in milliseconds
- * @param {string} operation - Name of the operation for error message
- * @returns {Promise} - The promise that resolves or rejects with timeout
- */
-async function withTimeout(promise, ms, operation) {
-  let timeoutId;
-  const timeout = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error(`${operation} timed out after ${ms}ms. Please try again.`));
-    }, ms);
-  });
-
-  try {
-    const result = await Promise.race([promise, timeout]);
-    clearTimeout(timeoutId);
-    return result;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-}
-
 class AmadeusService {
   async searchFlights(searchParams) {
     try {
@@ -41,20 +11,16 @@ class AmadeusService {
       }
 
       // Handle one-way and round-trip search
-      const response = await withTimeout(
-        amadeus.shopping.flightOffersSearch.get({
-          originLocationCode: searchParams.origin,
-          destinationLocationCode: searchParams.destination,
-          departureDate: searchParams.departureDate,
-          returnDate: searchParams.returnDate || undefined,
-          adults: searchParams.adults || 1,
-          travelClass: searchParams.travelClass || "ECONOMY",
-          currencyCode: searchParams.currency || "USD", // Use requested currency or default to USD
-          max: 10,
-        }),
-        AMADEUS_FLIGHT_TIMEOUT,
-        "Flight search"
-      );
+      const response = await amadeus.shopping.flightOffersSearch.get({
+        originLocationCode: searchParams.origin,
+        destinationLocationCode: searchParams.destination,
+        departureDate: searchParams.departureDate,
+        returnDate: searchParams.returnDate || undefined,
+        adults: searchParams.adults || 1,
+        travelClass: searchParams.travelClass || "ECONOMY",
+        currencyCode: searchParams.currency || "USD", // Use requested currency or default to USD
+        max: 10,
+      });
 
       // Transform Amadeus response to match our FlightResult interface
       const transformedFlights = response.data.map((offer) => {
@@ -87,11 +53,6 @@ class AmadeusService {
               hour12: true,
             }
           ),
-          // Full ISO datetime fields for PDF generation
-          departureDateTime: firstSegment.departure.at,
-          arrivalDateTime: lastSegment.arrival.at,
-          departureDate: firstSegment.departure.at.split('T')[0],
-          flightNumber: firstSegment.number || firstSegment.carrierCode + '001',
           duration: duration,
           stops: itinerary.segments.length - 1,
           price: parseFloat(offer.price.total), // Extract numeric price from object
@@ -129,14 +90,10 @@ class AmadeusService {
       console.log("🔍 Amadeus Hostname:", process.env.AMADEUS_HOSTNAME);
       console.log("🔍 Searching for keyword:", keyword);
 
-      const response = await withTimeout(
-        amadeus.referenceData.locations.get({
-          keyword: keyword,
-          subType: "AIRPORT,CITY",
-        }),
-        AMADEUS_AIRPORT_TIMEOUT,
-        "Airport search"
-      );
+      const response = await amadeus.referenceData.locations.get({
+        keyword: keyword,
+        subType: "AIRPORT,CITY",
+      });
 
       console.log("✅ Amadeus API response received");
       return response.data;
@@ -212,10 +169,8 @@ class AmadeusService {
       );
 
       // Use POST endpoint for multi-city searches
-      const response = await withTimeout(
-        amadeus.shopping.flightOffersSearch.post(JSON.stringify(requestBody)),
-        AMADEUS_FLIGHT_TIMEOUT,
-        "Multi-city flight search"
+      const response = await amadeus.shopping.flightOffersSearch.post(
+        JSON.stringify(requestBody)
       );
 
       // Transform multi-city results
@@ -252,11 +207,6 @@ class AmadeusService {
               hour12: true,
             }
           ),
-          // Full ISO datetime fields for PDF generation
-          departureDateTime: firstSegment.departure.at,
-          arrivalDateTime: lastSegment.arrival.at,
-          departureDate: firstSegment.departure.at.split('T')[0],
-          flightNumber: firstSegment.number || firstSegment.carrierCode + '001',
           duration: totalDuration,
           stops: allSegments.length - 1,
           price: parseFloat(offer.price.total),
@@ -288,13 +238,9 @@ class AmadeusService {
 
       console.log(`🌍 Searching flight inspiration from ${origin}`);
 
-      const response = await withTimeout(
-        amadeus.shopping.flightDestinations.get({
-          origin: origin,
-        }),
-        AMADEUS_INSPIRATION_TIMEOUT,
-        "Flight inspiration search"
-      );
+      const response = await amadeus.shopping.flightDestinations.get({
+        origin: origin,
+      });
 
       console.log(`✅ Found ${response.data.length} destinations`);
 
