@@ -227,7 +227,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, un
         },
         onClose: () => {
           console.log('⚠️ Payment modal closed');
-          toast.info('Payment was cancelled. You can try again when ready.');
+          toast('Payment was cancelled. You can try again when ready.', { icon: 'ℹ️' });
         },
       });
     } catch (error) {

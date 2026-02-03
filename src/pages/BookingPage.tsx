@@ -223,26 +223,34 @@ const BookingPage: React.FC = () => {
       const seatFees = selectedSeats.reduce((sum, seat) => sum + (seat.price || 0), 0);
       const totalPrice = convertedFlightPrice + seatFees;
 
-      // Create the booking record
-      const newBooking: Booking = {
-        id: "", // Firestore will generate this
-        userId: currentUser.uid,
-        flightId: selectedFlight.id,
-        flightDetails: selectedFlight,
-        passengerInfo: {
+      // Create the booking record matching backend schema
+      const bookingPayload = {
+        flightDetails: {
+          departureAirport: selectedFlight.departureAirport.toUpperCase(),
+          arrivalAirport: selectedFlight.arrivalAirport.toUpperCase(),
+          departureTime: selectedFlight.departureTime,
+          arrivalTime: selectedFlight.arrivalTime,
+          // Include full ISO datetime for PDF generation
+          departureDateTime: (selectedFlight as any).departureDateTime,
+          arrivalDateTime: (selectedFlight as any).arrivalDateTime,
+          departureDate: (selectedFlight as any).departureDate,
+          airline: selectedFlight.airline,
+          airlineCode: selectedFlight.airlineCode,
+          flightNumber: (selectedFlight as any).flightNumber || selectedFlight.airlineCode + '001',
+          cabinClass: (selectedFlight.cabinClass || 'economy').toLowerCase() as 'economy' | 'business' | 'first',
+          price: selectedFlight.price,
+          currency: (selectedFlight.currency || 'USD').toUpperCase(),
+          duration: selectedFlight.duration,
+          stops: selectedFlight.stops,
+        },
+        passengerInfo: [{
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-        },
+        }],
         selectedSeats: selectedSeats.map(seat => seat.id),
-        seatDetails: selectedSeats,
-        bookingDate: new Date().toISOString(),
-        status: "confirmed",
         totalPrice,
-        currency: currency,
-        paymentId: paystackResponse.reference,
-        paymentStatus: "paid",
       };
 
       try {
@@ -260,7 +268,7 @@ const BookingPage: React.FC = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(newBooking)
+          body: JSON.stringify(bookingPayload)
         });
 
         if (!response.ok) {

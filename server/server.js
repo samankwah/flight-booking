@@ -66,12 +66,12 @@
 //   console.log(`Proxy server listening on port ${PORT}`);
 // });
 
-// Load environment variables FIRST before any other imports
-import './config/env.js';
-
+// IMPORTANT: Import Sentry instrumentation FIRST (before everything else)
+import Sentry from './instrument.js';
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import cron from "node-cron";
 import flightRoutes from "./routes/flightRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -89,11 +89,64 @@ import errorHandler from "./middleware/errorHandler.js";
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import { swaggerUi, specs } from "./swagger.js";
 import priceMonitoringService from "./services/priceMonitoringService.js";
+import logger from "./utils/logger.js";
+import { correlationId, morganMiddleware, errorLogger } from "./middleware/requestLogger.js";
+import { verifyConnection as verifyEmailConnection } from "./services/gmailEmailService.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Note: Sentry v8+ automatically instruments Express via OpenTelemetry
+// No need for Sentry.Handlers.requestHandler() or tracingHandler()
+
+// SECURITY HEADERS - Apply after Sentry, before other middleware
+app.use(
+  helmet({
+    // Content Security Policy
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Swagger UI
+        scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for Swagger UI
+        imgSrc: ["'self'", "data:", "https:"], // Allow images from https and data URIs
+        connectSrc: ["'self'"], // API calls to same origin
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    // Strict-Transport-Security - Force HTTPS
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    // X-Frame-Options - Prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+    // X-Content-Type-Options - Prevent MIME sniffing
+    noSniff: true,
+    // X-XSS-Protection - Enable XSS filter
+    xssFilter: true,
+    // Referrer-Policy - Control referrer information
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    // X-DNS-Prefetch-Control - Control DNS prefetching
+    dnsPrefetchControl: {
+      allow: false,
+    },
+    // X-Download-Options - Prevent file downloads in IE
+    ieNoOpen: true,
+    // X-Permitted-Cross-Domain-Policies - Restrict Adobe products
+    permittedCrossDomainPolicies: {
+      permittedPolicies: 'none',
+    },
+  })
+);
+
 // CORS configuration - restrict to frontend domain
 const allowedOrigins = [
   'http://localhost:5173',
@@ -118,9 +171,32 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key', 'X-API-Key']
 }));
-app.use(express.json());
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' })); // Limit body size to prevent DoS
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request timeout middleware - prevents hanging requests
+app.use((req, res, next) => {
+  // Set 60 second timeout for requests (allows time for Amadeus API calls)
+  req.setTimeout(60000);
+  res.setTimeout(60000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({
+        success: false,
+        error: 'Request Timeout',
+        message: 'The request took too long to process. Please try again.'
+      });
+    }
+  });
+  next();
+});
+
+// Request logging and correlation
+app.use(correlationId); // Add correlation ID to all requests
+app.use(morganMiddleware); // HTTP request logging
 
 // Apply general rate limiting to all routes
 app.use("/api", generalLimiter);
@@ -197,7 +273,7 @@ app.get('/api/test-pdf', async (req, res) => {
     res.setHeader('Content-Disposition', 'inline; filename=test-ticket.pdf');
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('PDF generation error:', error);
+    logger.error('PDF generation error', { error: error.message, stack: error.stack });
     res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
@@ -207,7 +283,13 @@ app.get("/docs", (req, res) => {
   res.redirect("/api-docs");
 });
 
-// Error handler (must be last)
+// Note: Sentry v8+ automatically captures errors via OpenTelemetry
+// No need for Sentry.Handlers.errorHandler()
+
+// Error logging middleware (after Sentry, before custom handler)
+app.use(errorLogger);
+
+// Custom error handler (must be last)
 app.use(errorHandler);
 
 // Manual trigger endpoint for price alert checking (for testing)
@@ -227,22 +309,45 @@ app.post("/api/price-alerts/check-now", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server running on http://localhost:${PORT}`);
-  console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
+app.listen(PORT, async () => {
+  logger.info(`Backend server running on http://localhost:${PORT}`);
+  logger.info(`API Documentation available at http://localhost:${PORT}/api-docs`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Verify Gmail SMTP connection on startup
+  logger.info("Verifying Gmail SMTP connection...");
+  try {
+    const emailResult = await verifyEmailConnection();
+    if (emailResult.success) {
+      logger.info("Gmail SMTP verified - email service ready");
+    } else if (!emailResult.configured) {
+      logger.warn("Gmail SMTP not configured - emails will not be sent");
+      logger.warn("To enable emails: set GMAIL_USER and GMAIL_APP_PASSWORD in server/.env");
+    } else {
+      logger.error("Gmail SMTP verification failed - check credentials");
+      logger.error("Generate new App Password at: https://myaccount.google.com/apppasswords");
+    }
+  } catch (err) {
+    logger.error("Error verifying email connection", { error: err.message });
+  }
 
   // Start price monitoring service
   // Run every hour
-  console.log("⏰ Setting up price monitoring cron job...");
+  logger.info("Setting up price monitoring cron job (hourly)");
   cron.schedule('0 * * * *', async () => {
-    console.log('🔔 Running scheduled price alert check...');
-    await priceMonitoringService.checkAllAlerts();
+    logger.info('Running scheduled price alert check');
+    try {
+      await priceMonitoringService.checkAllAlerts();
+      logger.info('Scheduled price alert check completed');
+    } catch (err) {
+      logger.error('Error in scheduled price alert check', { error: err.message, stack: err.stack });
+    }
   });
 
   // Also run immediately on startup
-  console.log("🏃 Running initial price alert check...");
+  logger.info("Running initial price alert check");
   priceMonitoringService.checkAllAlerts().catch(err => {
-    console.error("❌ Error in initial price alert check:", err);
+    logger.error("Error in initial price alert check", { error: err.message, stack: err.stack });
   });
 });
 

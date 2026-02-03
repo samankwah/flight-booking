@@ -3,8 +3,8 @@ import { cache } from "../utils/cache";
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-// Default timeout for API requests (30 seconds)
-const DEFAULT_TIMEOUT = 30000;
+// Default timeout for API requests (45 seconds - allows time for Amadeus API)
+const DEFAULT_TIMEOUT = 45000;
 
 /**
  * Fetch with timeout
@@ -102,7 +102,7 @@ export const searchAirports = async (keyword) => {
             keyword
           )}`,
           { method: "GET" },
-          15000 // Shorter timeout for airport search (15 seconds)
+          30000 // Timeout for airport search (30 seconds - allows time for Amadeus)
         );
 
         if (!response.ok) {

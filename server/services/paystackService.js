@@ -7,6 +7,7 @@ class PaystackService {
    * @param {number} params.amount - Amount in kobo (smallest currency unit)
    * @param {string} params.email - Customer email
    * @param {string} params.reference - Unique transaction reference
+   * @param {string} params.currency - Currency code (NGN, GHS, ZAR, USD)
    * @param {Object} params.metadata - Additional metadata
    * @param {string} params.callback_url - Callback URL after payment
    */
@@ -27,6 +28,7 @@ class PaystackService {
         amount: params.amount, // Amount in kobo
         email: params.email,
         reference: params.reference,
+        currency: params.currency || 'GHS', // Support foreign currencies
         metadata: params.metadata || {},
         callback_url: params.callback_url,
         channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],

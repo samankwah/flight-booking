@@ -126,7 +126,18 @@ const RegisterPage: React.FC = () => {
               <Lock className="absolute right-3 top-4 w-5 h-5 text-gray-400" />
             </div>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <div className="text-red-500 text-sm">
+              <p>{error}</p>
+              {error.includes('already registered') && (
+                <p className="mt-1">
+                  <Link to="/login" className="text-cyan-600 hover:underline">
+                    Click here to login instead
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
           <div>
             <motion.button
               whileHover={{ scale: 1.02 }}

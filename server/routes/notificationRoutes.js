@@ -2,6 +2,8 @@
 
 import express from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { notificationLimiter } from '../middleware/rateLimiter.js';
+import { validate, notificationPreferencesSchema } from '../middleware/validation.js';
 import {
   subscribe,
   unsubscribe,
@@ -12,7 +14,8 @@ import {
 
 const router = express.Router();
 
-// All routes require authentication
+// All routes require authentication and rate limiting
+router.use(notificationLimiter);
 router.use(requireAuth);
 
 /**
@@ -41,7 +44,7 @@ router.get('/preferences', getPreferences);
  * @desc    Update user notification preferences
  * @access  Private
  */
-router.put('/preferences', updatePreferences);
+router.put('/preferences', validate(notificationPreferencesSchema), updatePreferences);
 
 /**
  * @route   POST /api/notifications/send

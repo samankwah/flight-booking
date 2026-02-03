@@ -1,5 +1,6 @@
 // server/middleware/adminAuth.js
 import { auth } from '../config/firebase.js';
+import logger from '../utils/logger.js';
 
 /**
  * Middleware to verify admin authentication
@@ -32,7 +33,7 @@ export const requireAdmin = async (req, res, next) => {
     try {
       decodedToken = await auth.verifyIdToken(token);
     } catch (error) {
-      console.error('Token verification failed:', error.message);
+      logger.warn('Token verification failed', { error: error.message });
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid or expired token'
@@ -41,7 +42,7 @@ export const requireAdmin = async (req, res, next) => {
 
     // Check admin claim
     if (!decodedToken.admin) {
-      console.warn(`Access denied for user ${decodedToken.uid} - not an admin`);
+      logger.warn('Admin access denied', { userId: decodedToken.uid, email: decodedToken.email });
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Admin access required. You do not have permission to access this resource.'
@@ -56,10 +57,10 @@ export const requireAdmin = async (req, res, next) => {
       emailVerified: decodedToken.email_verified
     };
 
-    console.log(`✅ Admin access granted for user: ${decodedToken.email}`);
+    logger.logAuth('Admin access granted', decodedToken.uid, { email: decodedToken.email });
     next();
   } catch (error) {
-    console.error('Admin auth middleware error:', error);
+    logger.error('Admin auth middleware error', { error: error.message, stack: error.stack });
     return res.status(500).json({
       error: 'Internal Server Error',
       message: 'Authentication check failed'
@@ -94,7 +95,7 @@ export const requireAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logger.warn('Auth middleware error', { error: error.message });
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Invalid or expired token'

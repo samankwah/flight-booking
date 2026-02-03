@@ -19,6 +19,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.9",
+    "@sentry/node": "^10.32.1",
     "@tailwindcss/postcss": "^4.1.17",
     "amadeus": "^11.0.0",
     "axios": "^1.13.2",

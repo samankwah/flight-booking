@@ -118,3 +118,7 @@ async function populateTechnicalUniversities() {
 }
 
 populateTechnicalUniversities();
+
+
+
+

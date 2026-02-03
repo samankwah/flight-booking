@@ -295,6 +295,154 @@ export const validateQuery = (schema) => {
   };
 };
 
+// Booking validation schema
+export const bookingSchema = Joi.object({
+  flightDetails: Joi.object({
+    departureAirport: Joi.string().length(3).pattern(/^[A-Z]{3}$/).required(),
+    arrivalAirport: Joi.string().length(3).pattern(/^[A-Z]{3}$/).required(),
+    departureTime: Joi.string().max(50).required(),  // Accept any time format (locale strings from frontend)
+    arrivalTime: Joi.string().max(50).required(),    // Accept any time format (locale strings from frontend)
+    airline: Joi.string().max(100).required(),
+    flightNumber: Joi.string().max(20).required(),
+    cabinClass: Joi.string().valid('economy', 'business', 'first').required(),
+    price: Joi.number().positive().required(),
+    currency: Joi.string().length(3).uppercase().default('USD'),
+  }).required(),
+
+  passengerInfo: Joi.array().items(
+    Joi.object({
+      firstName: Joi.string().min(1).max(50).trim().required(),
+      lastName: Joi.string().min(1).max(50).trim().required(),
+      email: Joi.string().email().required(),
+      phone: Joi.string().min(10).max(20).required(),  // Relaxed phone validation (accepts local formats like 0201234567)
+      dateOfBirth: Joi.string().optional(),
+      passportNumber: Joi.string().max(20).optional(),
+    })
+  ).min(1).max(9).required(),
+
+  selectedSeats: Joi.array().items(Joi.string().max(10)).max(9).optional(),
+  totalPrice: Joi.number().positive().required(),
+  paymentIntentId: Joi.string().max(100).optional(),
+}).required();
+
+// Visa application validation schema
+export const visaApplicationSchema = Joi.object({
+  personalInfo: Joi.object({
+    firstName: Joi.string().min(1).max(50).trim().required(),
+    lastName: Joi.string().min(1).max(50).trim().required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+    dateOfBirth: Joi.string().isoDate().required(),
+    nationality: Joi.string().length(2).uppercase().required(),
+    passportNumber: Joi.string().min(5).max(20).required(),
+    passportExpiry: Joi.string().isoDate().required(),
+  }).required(),
+
+  travelDetails: Joi.object({
+    destination: Joi.string().length(2).uppercase().required(),
+    purposeOfVisit: Joi.string().valid('tourism', 'business', 'study', 'work', 'other').required(),
+    intendedStayDuration: Joi.number().integer().min(1).max(365).required(),
+    arrivalDate: Joi.string().isoDate().required(),
+    departureDate: Joi.string().isoDate().required(),
+  }).required(),
+
+  visaType: Joi.string().max(50).required(),
+  status: Joi.string().valid('pending', 'approved', 'rejected', 'processing').default('pending'),
+}).required();
+
+// University application validation schema
+export const applicationSchema = Joi.object({
+  universityId: Joi.string().required(),
+  programId: Joi.string().required(),
+
+  personalInfo: Joi.object({
+    firstName: Joi.string().min(1).max(50).trim().required(),
+    lastName: Joi.string().min(1).max(50).trim().required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+    dateOfBirth: Joi.string().isoDate().required(),
+    nationality: Joi.string().length(2).uppercase().required(),
+  }).required(),
+
+  academicInfo: Joi.object({
+    highestDegree: Joi.string().max(100).required(),
+    institution: Joi.string().max(200).required(),
+    graduationYear: Joi.number().integer().min(1950).max(2030).required(),
+    gpa: Joi.number().min(0).max(4.0).optional(),
+  }).required(),
+
+  status: Joi.string().valid('draft', 'submitted', 'under_review', 'accepted', 'rejected').default('draft'),
+}).required();
+
+// Hotel booking validation schema
+export const hotelBookingSchema = Joi.object({
+  hotelId: Joi.string().required(),
+  hotelName: Joi.string().min(1).max(200).required(),
+
+  guestInfo: Joi.object({
+    firstName: Joi.string().min(1).max(50).trim().required(),
+    lastName: Joi.string().min(1).max(50).trim().required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+  }).required(),
+
+  checkInDate: Joi.string().isoDate().required(),
+  checkOutDate: Joi.string().isoDate().required(),
+  numberOfGuests: Joi.number().integer().min(1).max(10).required(),
+  roomType: Joi.string().max(50).required(),
+  totalPrice: Joi.number().positive().required(),
+  currency: Joi.string().length(3).uppercase().default('USD'),
+  specialRequests: Joi.string().max(500).optional(),
+}).required();
+
+// Holiday package booking validation schema
+export const holidayBookingSchema = Joi.object({
+  packageId: Joi.string().required(),
+  packageName: Joi.string().min(1).max(200).required(),
+
+  travelers: Joi.array().items(
+    Joi.object({
+      firstName: Joi.string().min(1).max(50).trim().required(),
+      lastName: Joi.string().min(1).max(50).trim().required(),
+      email: Joi.string().email().required(),
+      phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+      dateOfBirth: Joi.string().isoDate().optional(),
+    })
+  ).min(1).max(20).required(),
+
+  startDate: Joi.string().isoDate().required(),
+  endDate: Joi.string().isoDate().required(),
+  numberOfTravelers: Joi.number().integer().min(1).max(20).required(),
+  totalPrice: Joi.number().positive().required(),
+  currency: Joi.string().length(3).uppercase().default('USD'),
+  specialRequests: Joi.string().max(500).optional(),
+}).required();
+
+// Notification preferences validation schema
+export const notificationPreferencesSchema = Joi.object({
+  email: Joi.boolean().default(true),
+  push: Joi.boolean().default(true),
+  sms: Joi.boolean().default(false),
+  priceAlerts: Joi.boolean().default(true),
+  bookingUpdates: Joi.boolean().default(true),
+  promotions: Joi.boolean().default(false),
+}).required();
+
+// Admin user update validation schema
+export const adminUserUpdateSchema = Joi.object({
+  role: Joi.string().valid('user', 'admin', 'moderator').optional(),
+  status: Joi.string().valid('active', 'disabled', 'suspended').optional(),
+  emailVerified: Joi.boolean().optional(),
+}).min(1); // At least one field must be provided
+
+// Pagination validation schema
+export const paginationSchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  sortBy: Joi.string().max(50).optional(),
+  sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+});
+
 /**
  * Sanitization middleware for general input cleaning
  */

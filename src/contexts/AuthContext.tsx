@@ -120,8 +120,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast.success('Account created successfully!');
       return result;
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
-      throw error;
+      // Map Firebase error codes to user-friendly messages
+      const errorMessages: Record<string, string> = {
+        'auth/email-already-in-use': 'This email is already registered. Please login instead.',
+        'auth/weak-password': 'Password must be at least 6 characters.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/operation-not-allowed': 'Email registration is currently disabled.',
+        'auth/too-many-requests': 'Too many attempts. Please try again later.'
+      };
+      const message = errorMessages[error.code] || error.message || 'Failed to create account';
+      toast.error(message);
+      throw new Error(message);
     }
   };
 

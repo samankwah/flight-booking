@@ -1,6 +1,8 @@
 import express from 'express';
 import { createPaymentLimiter } from '../middleware/rateLimiter.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { idempotencyMiddleware } from '../middleware/idempotency.js';
+import { validate, paymentIntentSchema } from '../middleware/validation.js';
 import {
   initializeTransaction,
   verifyTransaction,
@@ -15,7 +17,7 @@ const router = express.Router();
 router.post('/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 
 // Protected payment endpoints - require authentication
-router.post('/initialize', requireAuth, createPaymentLimiter, initializeTransaction);
+router.post('/initialize', requireAuth, idempotencyMiddleware, validate(paymentIntentSchema), createPaymentLimiter, initializeTransaction);
 
 router.get('/verify/:reference', requireAuth, createPaymentLimiter, verifyTransaction);
 

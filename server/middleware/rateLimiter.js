@@ -64,3 +64,78 @@ export const createPaymentLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Admin operations rate limiter - 50 requests per 15 minutes per IP
+// More lenient than auth but stricter than general
+export const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each IP to 50 admin requests per 15 minutes
+  message: {
+    error: 'Too many admin requests, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Booking operations rate limiter - 20 requests per minute per IP
+export const bookingLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 booking requests per minute
+  message: {
+    error: 'Too many booking requests, please wait before trying again.',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Application/Visa submission rate limiter - 10 requests per hour per IP
+// Strict to prevent spam applications
+export const applicationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 applications per hour
+  message: {
+    error: 'Too many application submissions, please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Hotel/Holiday booking rate limiter - 20 requests per minute per IP
+export const hotelBookingLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 hotel/holiday requests per minute
+  message: {
+    error: 'Too many booking requests, please wait before trying again.',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Notification operations rate limiter - 30 requests per minute per IP
+export const notificationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 notification requests per minute
+  message: {
+    error: 'Too many notification requests, please wait before trying again.',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// University/Read-only operations rate limiter - 60 requests per minute per IP
+// More lenient for read operations
+export const readOnlyLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // Limit each IP to 60 read requests per minute
+  message: {
+    error: 'Too many requests, please wait before trying again.',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

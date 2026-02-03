@@ -114,7 +114,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           console.log('⚠️ Payment modal closed');
           const message = 'Payment was cancelled';
           setErrorMessage(message);
-          toast.info(message);
+          toast(message, { icon: 'ℹ️' });
           onPaymentError(message);
           setIsProcessing(false);
         },

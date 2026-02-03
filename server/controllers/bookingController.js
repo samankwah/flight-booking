@@ -20,7 +20,12 @@ export const createBooking = async (req, res, next) => {
       });
     }
 
-    if (!bookingData.passengerInfo.email) {
+    // Handle passengerInfo as array (new format) or object (legacy format)
+    const primaryPassenger = Array.isArray(bookingData.passengerInfo)
+      ? bookingData.passengerInfo[0]
+      : bookingData.passengerInfo;
+
+    if (!primaryPassenger?.email) {
       return res.status(400).json({
         success: false,
         error: 'Passenger email is required'

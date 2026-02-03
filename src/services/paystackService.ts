@@ -48,10 +48,26 @@ class PaystackService {
         return;
       }
 
-      // Default to GHS (Ghana Cedis) since Paystack account is in Ghana
-      // Paystack supports: NGN (Nigeria), GHS (Ghana), ZAR (South Africa), USD
-      const currency = data.currency?.toUpperCase() || 'GHS';
-      const amountInSmallestUnit = data.amount * 100; // Convert to pesewas (for GHS) or kobo (for NGN)
+      // Paystack only supports these currencies - others will return 400 Bad Request
+      const PAYSTACK_SUPPORTED_CURRENCIES = ['NGN', 'GHS', 'ZAR', 'USD'];
+      const requestedCurrency = data.currency?.toUpperCase() || 'GHS';
+      const currency = PAYSTACK_SUPPORTED_CURRENCIES.includes(requestedCurrency)
+        ? requestedCurrency
+        : 'GHS'; // Fallback to account default (Ghana Cedis)
+
+      if (!PAYSTACK_SUPPORTED_CURRENCIES.includes(requestedCurrency)) {
+        console.warn(`⚠️ Currency ${requestedCurrency} not supported by Paystack, falling back to GHS`);
+      }
+
+      // Validate amount - must be a positive number
+      if (!data.amount || data.amount <= 0) {
+        console.error('❌ Invalid payment amount:', data.amount);
+        reject(new Error('Invalid payment amount'));
+        return;
+      }
+
+      // Convert to smallest unit (pesewas/kobo/cents) - must be an integer
+      const amountInSmallestUnit = Math.round(data.amount * 100);
       const reference = data.reference || `flight-booking-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
       console.log('🚀 Opening Paystack popup...', {

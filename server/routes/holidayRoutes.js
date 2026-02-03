@@ -2,18 +2,21 @@
 import express from 'express';
 import * as holidayController from '../controllers/holidayController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { hotelBookingLimiter } from '../middleware/rateLimiter.js';
+import { validate, holidayBookingSchema } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// All holiday package booking routes require authentication
+// All holiday package booking routes require authentication and rate limiting
 router.use(requireAuth);
+router.use(hotelBookingLimiter);
 
 /**
  * POST /api/holiday-package-bookings
  * Create a new holiday package booking
  * Body: Complete holiday package booking data including package details, traveler info
  */
-router.post('/', holidayController.createHolidayPackageBooking);
+router.post('/', validate(holidayBookingSchema), holidayController.createHolidayPackageBooking);
 
 /**
  * GET /api/holiday-package-bookings/user/:userId
@@ -30,3 +33,7 @@ router.get('/user/:userId', holidayController.getUserHolidayPackageBookings);
 router.get('/:id', holidayController.getHolidayPackageBookingById);
 
 export default router;
+
+
+
+

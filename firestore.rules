@@ -1,71 +1,252 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check admin status
+
+    // ==================== HELPER FUNCTIONS ====================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+      return isAuthenticated() && request.auth.token.admin == true;
     }
 
-    // Bookings - users can create their own, admins can do anything
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isOwnerOrAdmin(userId) {
+      return isOwner(userId) || isAdmin();
+    }
+
+    // Prevent tampering with protected fields
+    function notUpdatingProtectedFields(protectedFields) {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(protectedFields);
+    }
+
+    // Validate timestamps exist
+    function hasValidTimestamps() {
+      return request.resource.data.keys().hasAll(['createdAt', 'updatedAt']);
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ==================== BOOKINGS ====================
+
     match /bookings/{bookingId} {
-      allow read: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null &&
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
-    }
+      allow read: if isOwnerOrAdmin(resource.data.userId);
 
-    // Users - users can read/create their own, admins can do anything
-    match /users/{userId} {
-      allow read: if request.auth != null &&
-        (userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null && userId == request.auth.uid;
-      allow update: if request.auth != null &&
-        (userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'flightDetails', 'passengerInfo',
+                          'totalPrice', 'currency', 'status', 'paymentStatus']) &&
+        hasValidTimestamps() &&
+        request.resource.data.status in ['pending', 'confirmed'] &&
+        request.resource.data.paymentStatus in ['pending', 'paid'] &&
+        request.resource.data.totalPrice > 0;
+
+      allow update: if isAdmin() &&
+        // Can't change userId or financial data after payment
+        (resource.data.paymentStatus != 'paid' ||
+         notUpdatingProtectedFields(['userId', 'totalPrice', 'currency', 'bookingDate', 'createdAt']));
+
       allow delete: if isAdmin();
     }
 
-    // Special Offers - public read, admin write
-    match /specialOffers/{offerId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // ==================== HOTEL BOOKINGS ====================
+
+    match /hotelBookings/{bookingId} {
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'hotelDetails', 'guestInfo',
+                          'bookingDates', 'totalPrice', 'currency']) &&
+        hasValidTimestamps() &&
+        request.resource.data.totalPrice > 0;
+
+      allow update: if isAdmin() &&
+        notUpdatingProtectedFields(['userId', 'bookingDate', 'createdAt']);
+
+      allow delete: if isAdmin();
     }
 
-    // Top Deals - public read, admin write
-    match /topDeals/{dealId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // ==================== HOLIDAY PACKAGE BOOKINGS ====================
+
+    match /holidayPackageBookings/{bookingId} {
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'packageDetails', 'travelerInfo',
+                          'travelDates', 'totalPrice', 'currency']) &&
+        hasValidTimestamps() &&
+        request.resource.data.totalPrice > 0;
+
+      allow update: if isAdmin() &&
+        notUpdatingProtectedFields(['userId', 'bookingDate', 'createdAt']);
+
+      allow delete: if isAdmin();
     }
 
-    // Universities - public read, admin write
-    match /universities/{universityId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // ==================== VISA APPLICATIONS ====================
+
+    match /visaApplications/{applicationId} {
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'personalInfo', 'contactInfo', 'travelDetails', 'status']) &&
+        request.resource.data.status == 'submitted' &&
+        hasValidTimestamps();
+
+      allow update: if isAdmin() &&
+        notUpdatingProtectedFields(['userId', 'submittedAt', 'createdAt']);
+
+      allow delete: if isAdmin();
     }
 
-    // Study Abroad Applications
+    // ==================== STUDY ABROAD APPLICATIONS ====================
+
+    match /applications/{applicationId} {
+      allow read: if isOwnerOrAdmin(resource.data.applicant.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.applicant.userId == request.auth.uid &&
+        hasRequiredFields(['applicant', 'university', 'program', 'workflow', 'payment']) &&
+        request.resource.data.workflow.status in ['draft', 'submitted'] &&
+        hasValidTimestamps();
+
+      allow update: if isOwnerOrAdmin(resource.data.applicant.userId) &&
+        // Users can only update draft applications, admins can update all
+        (isAdmin() || resource.data.workflow.status == 'draft') &&
+        notUpdatingProtectedFields(['applicant.userId', 'createdAt']);
+
+      allow delete: if isAdmin();
+    }
+
+    // ==================== LEGACY STUDY ABROAD APPLICATIONS ====================
+
     match /studyAbroadApplications/{applicationId} {
-      allow read: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null &&
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasValidTimestamps();
+
+      allow update: if isAdmin() &&
+        notUpdatingProtectedFields(['userId', 'submittedAt', 'createdAt']);
+
+      allow delete: if isAdmin();
     }
 
-    // Study Abroad Programs - public read, admin write
+    // ==================== UNIVERSITIES ====================
+
+    match /universities/{universityId} {
+      allow read: if true; // Public read
+
+      allow write: if isAdmin() &&
+        hasRequiredFields(['basicInfo', 'academics', 'settings']) &&
+        hasValidTimestamps();
+    }
+
+    // ==================== STUDY ABROAD PROGRAMS ====================
+
     match /studyAbroadPrograms/{programId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if true; // Public read
+
+      allow write: if isAdmin() &&
+        hasRequiredFields(['basicInfo', 'academics', 'settings']) &&
+        hasValidTimestamps();
     }
 
-    // Price Alerts - users can manage their own
+    // ==================== USERS ====================
+
+    match /users/{userId} {
+      allow read: if isOwnerOrAdmin(userId);
+
+      allow create: if isAuthenticated() &&
+        userId == request.auth.uid &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.isAdmin == false && // Can't self-grant admin
+        hasValidTimestamps();
+
+      allow update: if isOwnerOrAdmin(userId) &&
+        // Users can't grant themselves admin, only admins can modify admin status
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isDisabled']) ||
+         isAdmin()) &&
+        notUpdatingProtectedFields(['uid', 'createdAt']);
+
+      allow delete: if isAdmin();
+    }
+
+    // ==================== PRICE ALERTS ====================
+
     match /priceAlerts/{alertId} {
-      allow read: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null &&
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'email', 'route', 'targetPrice', 'currency']) &&
+        request.resource.data.targetPrice > 0;
+
+      allow update: if isOwnerOrAdmin(resource.data.userId) &&
+        notUpdatingProtectedFields(['userId', 'createdAt']);
+
+      allow delete: if isOwnerOrAdmin(resource.data.userId);
+    }
+
+    // ==================== NOTIFICATION SUBSCRIPTIONS ====================
+
+    match /notification-subscriptions/{subscriptionId} {
+      allow read: if isOwnerOrAdmin(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasRequiredFields(['userId', 'endpoint', 'keys']);
+
+      allow update: if isOwnerOrAdmin(resource.data.userId) &&
+        notUpdatingProtectedFields(['userId', 'createdAt']);
+
+      allow delete: if isOwnerOrAdmin(resource.data.userId);
+    }
+
+    // ==================== NOTIFICATION PREFERENCES ====================
+
+    match /notification-preferences/{userId} {
+      allow read: if isOwnerOrAdmin(userId);
+
+      allow create: if isAuthenticated() &&
+        userId == request.auth.uid &&
         request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow update: if isOwnerOrAdmin(userId) &&
+        notUpdatingProtectedFields(['userId', 'createdAt']);
+
+      allow delete: if isOwnerOrAdmin(userId);
+    }
+
+    // ==================== SPECIAL OFFERS ====================
+
+    match /specialOffers/{offerId} {
+      allow read: if true; // Public read
+
+      allow write: if isAdmin() &&
+        hasValidTimestamps();
+    }
+
+    // ==================== TOP DEALS ====================
+
+    match /topDeals/{dealId} {
+      allow read: if true; // Public read
+
+      allow write: if isAdmin() &&
+        hasValidTimestamps();
     }
   }
 }

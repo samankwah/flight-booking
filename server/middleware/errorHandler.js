@@ -1,5 +1,7 @@
+// Error handler middleware - sends error response to client
+// Note: Error logging is handled by errorLogger middleware
 const errorHandler = (err, req, res, next) => {
-  console.error("Error:", err);
+  // Error is already logged by errorLogger middleware
 
   res.status(err.status || 500).json({
     success: false,

@@ -2,18 +2,21 @@
 import express from 'express';
 import * as hotelController from '../controllers/hotelController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { hotelBookingLimiter } from '../middleware/rateLimiter.js';
+import { validate, hotelBookingSchema } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// All hotel booking routes require authentication
+// All hotel booking routes require authentication and rate limiting
 router.use(requireAuth);
+router.use(hotelBookingLimiter);
 
 /**
  * POST /api/hotel-bookings
  * Create a new hotel booking
  * Body: Complete hotel booking data including hotel details, guest info, dates
  */
-router.post('/', hotelController.createHotelBooking);
+router.post('/', validate(hotelBookingSchema), hotelController.createHotelBooking);
 
 /**
  * GET /api/hotel-bookings/user/:userId
@@ -30,3 +33,7 @@ router.get('/user/:userId', hotelController.getUserHotelBookings);
 router.get('/:id', hotelController.getHotelBookingById);
 
 export default router;
+
+
+
+
